@@ -14,6 +14,9 @@ NEWSPIDER_MODULE = 'procurementScrape.spiders'
 USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
 COOKIES_DEBUG = True
 
+CONCURRENT_REQUESTS = 16
+CONCURRENT_REQUESTS_PER_DOMAIN = 13
+
 ITEM_PIPELINES = [
     'procurementScrape.pipelines.ProcurementscrapePipeline',
 ]

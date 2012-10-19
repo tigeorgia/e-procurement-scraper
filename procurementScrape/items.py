@@ -7,8 +7,8 @@ from scrapy.item import Item, Field
 
 class Tender(Item):
     # define the fields for your item here like:
-    urlID = Field()
-    procuringEntityID = Field()
+    tenderID = Field()
+    procuringEntityUrl = Field()
     procuringEntityName = Field()
     tenderType = Field()
     tenderRegistrationNumber = Field()
@@ -21,23 +21,24 @@ class Tender(Item):
     
     
 class Organisation(Item):
-    urlID = Field()
     OrgID = Field()
+    OrgUrl = Field()
     Name = Field()
     Country = Field()
     Type = Field()
 
 class TenderBidder(Item):
-    urlID = Field()
-    OrgID = Field()
+    tenderID = Field()
+    OrgUrl = Field()
     firstBidAmount = Field() 
     firstBidDate = Field()
     lastBidAmount = Field()
     lastBidDate = Field()
     
 class TenderAgreement(Item):
-    urlID = Field()
-    OrgID = Field()
+    tenderID = Field()
+    AmendmentNumber = Field()
+    OrgUrl = Field()
     Amount = Field()
     StartDate = Field()
     ExpiryDate = Field()
