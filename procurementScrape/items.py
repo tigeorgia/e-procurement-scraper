@@ -18,6 +18,12 @@ class Tender(Item):
     bidsEndDate = Field()
     estimatedValue = Field()
     cpvCode = Field()
+    info = Field()
+    amountToSupply = Field()
+    supplyPeriod = Field()
+    offerStep = Field()
+    guaranteeAmount = Field()
+    guaranteePeriod = Field()
     
     
 class Organisation(Item):
@@ -25,6 +31,11 @@ class Organisation(Item):
     OrgUrl = Field()
     Name = Field()
     Country = Field()
+    city = Field()
+    phoneNumber = Field()
+    faxNumber = Field()
+    email = Field()
+    webpage = Field()
     Type = Field()
 
 class TenderBidder(Item):
@@ -34,6 +45,7 @@ class TenderBidder(Item):
     firstBidDate = Field()
     lastBidAmount = Field()
     lastBidDate = Field()
+    numberOfBids= Field()
     
 class TenderAgreement(Item):
     tenderID = Field()
@@ -42,4 +54,12 @@ class TenderAgreement(Item):
     Amount = Field()
     StartDate = Field()
     ExpiryDate = Field()
-    
+    documentUrl = Field()
+
+class TenderDocument(Item):
+    tenderID = Field()
+    documentUrl = Field()
+
+class TenderResultDocument(Item):
+    tenderID = Field()
+    documentUrl = Field()

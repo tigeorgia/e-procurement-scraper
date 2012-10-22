@@ -5,14 +5,15 @@
 from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument
 from time import sleep
 import httplib2
 
 class ProcurementSpider(BaseSpider):
     name = "procurement"
     allowed_domains = ["procurement.gov.ge", "tenders.procurement.gov.ge"]
-    mainPageBaseUrl = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=search_app&page="
+    baseUrl = "https://tenders.procurement.gov.ge/public/"
+    mainPageBaseUrl = baseUrl+"lib/controller.php?action=search_app&page="
     start_urls = [mainPageBaseUrl+"1"]
     tenderCount = 0
     
@@ -27,6 +28,8 @@ class ProcurementSpider(BaseSpider):
         hxs = HtmlXPathSelector(response)
         resultsDividersXPath = hxs.select('//div[contains(@id, "agency_docs")]//div')
         resultsDividers = resultsDividersXPath.extract()
+        
+        #get results documents
         
         if resultsDividers.__len__() >= 3:
             winnerDiv = resultsDividers[2]
@@ -62,6 +65,13 @@ class ProcurementSpider(BaseSpider):
             endIndex = winnerDiv.find("<",index)
             item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
             
+            #find the document download section
+            index = winnerDiv.find('align="right',index)
+            index = winnerDiv.find("href",index)
+            index = winnerDiv.find('"',index)+1
+            endIndex = winnerDiv.find('"',index)
+            item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
+            
             yield item
             
             #check for contract amendment
@@ -92,6 +102,13 @@ class ProcurementSpider(BaseSpider):
                         index = endIndex
                         endIndex = amendmentHtml.find("<",index)
                         item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                        
+                        #find the document download section
+                        index = winnerDiv.find('align="right',index)
+                        index = winnerDiv.find("href",index)
+                        index = winnerDiv.find('"',index)+1
+                        endIndex = winnerDiv.find('"',index)
+                        item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
                         yield item
 
                 
@@ -105,7 +122,6 @@ class ProcurementSpider(BaseSpider):
         for bidder in bidRows:        
             item = TenderBidder()
             item["tenderID"] = response.meta['tenderID']
-            
             index = bidder.find("ShowProfile")
             index = bidder.find("(",index)
             endIndex = bidder.find(")",index)
@@ -134,12 +150,32 @@ class ProcurementSpider(BaseSpider):
             yield item
             
             #now lets use the company id to scrape the company data
-            url = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=profile&org_id="+item['OrgUrl']
+            url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['OrgUrl']
             organisation_request = Request(url, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie})
             organisation_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')     
             organisation_request.meta['OrgUrl'] = item['OrgUrl']
             organisation_request.meta['type'] = "biddingOrg"
             yield organisation_request
+    
+    def parseDocumentationPage(self,response):
+        hxs = HtmlXPathSelector(response)
+        documentRows = hxs.select('//table[contains(@id, "tender_docs")]//tr').extract()
+        #drop element 0
+        documentRows.pop(0)
+        for documentRow in documentRows:
+            item = TenderDocument()
+            
+            item["tenderID"] = response.meta['tenderID']
+            
+            index = documentRow.find("id")
+            index = documentRow.find('"',index) + 1
+            endIndex = documentRow.find('"',index)
+            rawData = documentRow[index:endIndex]
+            dataArray = rawData.split(".")
+            url = self.baseUrl+"lib/files.php?mode=app&"
+            item["documentUrl"] = url+"file="+dataArray[0]+"&code="+dataArray[1]
+            yield item
+        
     
     def parseOrganisation(self,response):
         #print "parsing procurer"
@@ -226,38 +262,71 @@ class ProcurementSpider(BaseSpider):
         index = keyPairs[19].find("/strong")
         index = keyPairs[19].find(">",index)
         endIndex = keyPairs[19].find("<",index)
-        item['cpvCode'] = keyPairs[19][index+1:endIndex].strip()
+        item['cpvCode'] = keyPairs[19][index+1:endIndex].strip() 
+        
+        index = keyPairs[25].find("blabla")
+        index = keyPairs[25].find(">",index)
+        endIndex = keyPairs[25].find("</",index)
+        item['info'] = keyPairs[25][index+1:endIndex]
+        
+        index = keyPairs[27].find(">")
+        endIndex = keyPairs[27].find("</",index)
+        item['amountToSupply'] = keyPairs[27][index+1:endIndex]
+        
+        index = keyPairs[29].find(">")
+        endIndex = keyPairs[29].find("</",index)
+        item['supplyPeriod'] = keyPairs[29][index+1:endIndex]
+  
+        index = keyPairs[31].find(">")
+        endIndex = keyPairs[31].find("</",index)
+        item['offerStep'] = keyPairs[31][index+1:endIndex]
+
+        index = keyPairs[33].find(">")
+        endIndex = keyPairs[33].find("</",index)
+        item['guaranteeAmount'] = keyPairs[33][index+1:endIndex]
+
+        index = keyPairs[35].find(">")
+        endIndex = keyPairs[35].find("</",index)
+        item['guaranteePeriod'] = keyPairs[35][index+1:endIndex]
     
         #now lets use the procuring entity id to find more info about the procurer
-        url = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=profile&org_id="+item['procuringEntityUrl']
+        url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['procuringEntityUrl']
         procurer_request = Request(url, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie})
         procurer_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')     
         procurer_request.meta['OrgUrl'] = item['procuringEntityUrl']
         procurer_request.meta['type'] = "procuringOrg"
         #yield procurer_request
         
+        
+        #now lets look at the tender documentation
+        url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
+        documentation_request = Request(url, callback=self.parseDocumentationPage, cookies={"SPALITE":self.sessionCookie})
+        documentation_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
+        documentation_request.meta['tenderID'] = item['tenderID']
+        #yield documentation_request
+        
         #now lets look at the bids made on this tender
-        url = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=app_bids&app_id="+item['tenderID']
+        url = self.baseUrl+"lib/controller.php?action=app_bids&app_id="+item['tenderID']
         bids_request = Request(url, callback=self.parseBidsPage, cookies={"SPALITE":self.sessionCookie})
         bids_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
         bids_request.meta['tenderID'] = item['tenderID']
         #yield bids_request
         
         #finally lets look at the results of this tender
-        url = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=agency_docs&app_id="+item['tenderID']
+        url = self.baseUrl+"lib/controller.php?action=agency_docs&app_id="+item['tenderID']
         results_request = Request(url, callback=self.parseResultsPage,cookies={"SPALITE":self.sessionCookie})
         results_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
         results_request.meta['tenderID'] = item['tenderID']
         #yield results_request
         
-        return item, results_request, procurer_request, bids_request
+        return procurer_request, results_request, bids_request, documentation_request, item
         
     def parseTenderUrls(self, response):
         hxs = HtmlXPathSelector(response)
         tenderOnClickItems = hxs.select('//table[@id="list_apps_by_subject"]//tr//@onclick').extract()
 
         for tenderOnClickItem in tenderOnClickItems:
-            base_tender_url = "https://tenders.procurement.gov.ge/public/lib/controller.php?action=app_main&app_id="
+            base_tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="
             index = tenderOnClickItem.find("ShowApp")
             index = tenderOnClickItem.find("(",index)
             endIndex = tenderOnClickItem.find(",",index)
@@ -285,7 +354,7 @@ class ProcurementSpider(BaseSpider):
             return
         
         print "Starting scrape"  
-        for i in range(int(final_page)/2,int(final_page)/2+200):
+        for i in range(int(final_page)/2,int(final_page)/2+5):
             url = self.mainPageBaseUrl+str(i)
             request = Request(url, callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie})
             request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
