@@ -5,7 +5,7 @@
 import json
 import datetime
 import os
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument
  
  
 class ProcurementscrapePipeline(object):
@@ -33,6 +33,9 @@ class ProcurementscrapePipeline(object):
         
         self.tenderAgreementsFile = open('tenderAgreements.json', 'wb')
         self.tenderAgreementsFile.write("[")
+         
+        self.tenderDocumentationFile = open('tenderDocumentation.json', 'wb')
+        self.tenderDocumentationFile.write("[")
         
         self.infoFile = open('scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
@@ -48,6 +51,8 @@ class ProcurementscrapePipeline(object):
             self.tenderBiddersFile.write(line)
         elif isinstance(item, TenderAgreement):
             self.tenderAgreementsFile.write(line)
+        elif isinstance(item, TenderDocument):
+            self.tenderDocumentationFile.write(line)
         return item
     
     def close_spider(self,spider):
@@ -72,6 +77,9 @@ class ProcurementscrapePipeline(object):
         self.tenderBiddersFile.close()
         
         self.tenderAgreementsFile.write("]")
+        self.tenderAgreementsFile.close()
+        
+        self.tenderDocumentationFile.write("]")
         self.tenderAgreementsFile.close()
         
         

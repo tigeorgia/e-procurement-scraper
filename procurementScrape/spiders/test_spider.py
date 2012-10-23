@@ -86,30 +86,40 @@ class ProcurementSpider(BaseSpider):
                         amendmentHtml = amendment.extract()
                         item = TenderAgreement()
                         item["tenderID"] = tenderID
+     
                         item["AmendmentNumber"] = str(amendmentNumber + 1)
                         item["OrgUrl"] = orgUrl
-
-                        index = amendmentHtml.find("ნომერი/თანხა")
-                        endIndex = amendmentHtml.find("ლარი",index)
-                        index = amendmentHtml.rfind("/",index,endIndex)
-                        item["Amount"] = amendmentHtml[index+1:endIndex].strip()
                         
-                        index = amendmentHtml.find("ძალაშია",index)
-                        index = amendmentHtml.find(":",index)
-                        endIndex = amendmentHtml.find("-",index)
-                        item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-                        
-                        index = endIndex
-                        endIndex = amendmentHtml.find("<",index)
-                        item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
-                        
-                        #find the document download section
-                        index = winnerDiv.find('align="right',index)
-                        index = winnerDiv.find("href",index)
-                        index = winnerDiv.find('"',index)+1
-                        endIndex = winnerDiv.find('"',index)
-                        item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
-                        yield item
+                        if amendmentHtml.find("დისკვალიფიკაცია") > -1 :
+                            #disqualified after an agreement was already signed
+                            #need to revisit which values get set here
+                            item["Amount"] = "NULL"                                 
+                            item["StartDate"] = "NULL"                                 
+                            item["ExpiryDate"] = "NULL"
+                            item["documentUrl"] = "NULL"
+                            yield item
+                        else :
+                            index = amendmentHtml.find("ნომერი/თანხა")
+                            endIndex = amendmentHtml.find("ლარი",index)
+                            index = amendmentHtml.rfind("/",index,endIndex)
+                            item["Amount"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                            index = amendmentHtml.find("ძალაშია",index)
+                            index = amendmentHtml.find(":",index)
+                            endIndex = amendmentHtml.find("-",index)
+                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                            index = endIndex
+                            endIndex = amendmentHtml.find("<",index)
+                            item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                            #find the document download section
+                            index = amendmentHtml.find('align="right',index)
+                            index = amendmentHtml.find("href",index)
+                            index = amendmentHtml.find('"',index)+1
+                            endIndex = amendmentHtml.find('"',index)
+                            item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex]
+                            yield item
 
                 
     
@@ -146,6 +156,8 @@ class ProcurementSpider(BaseSpider):
             index = bidder.find(">",index)
             endIndex = bidder.find("<",index)
             item["firstBidDate"] = bidder[index+1:endIndex]
+            
+            item["numberOfBids"] = 0
             
             yield item
             
@@ -205,6 +217,42 @@ class ProcurementSpider(BaseSpider):
         index = keyPairs[2].find(">",index)
         endIndex = keyPairs[2].find("<",index)
         item["Country"] = keyPairs[2][index+1:endIndex]
+        
+        index = keyPairs[3].find("/td")
+        index = keyPairs[3].find("<td",index)
+        index = keyPairs[3].find(">",index)
+        endIndex = keyPairs[3].find("<",index)
+        item["city"] = keyPairs[3][index+1:endIndex]
+        
+        index = keyPairs[4].find("/td")
+        index = keyPairs[4].find("<td",index)
+        index = keyPairs[4].find(">",index)
+        endIndex = keyPairs[4].find("<",index)
+        item["address"] = keyPairs[4][index+1:endIndex]
+        
+        index = keyPairs[5].find("/td")
+        index = keyPairs[5].find("<td",index)
+        index = keyPairs[5].find(">",index)
+        endIndex = keyPairs[5].find("<",index)
+        item["phoneNumber"] = keyPairs[5][index+1:endIndex]
+        
+        index = keyPairs[6].find("/td")
+        index = keyPairs[6].find("<td",index)
+        index = keyPairs[6].find(">",index)
+        endIndex = keyPairs[6].find("<",index)
+        item["faxNumber"] = keyPairs[6][index+1:endIndex]
+        
+        #dig into 'a' tag
+        index = keyPairs[7].find("href")
+        index = keyPairs[7].find(">",index)
+        endIndex = keyPairs[7].find("<",index)
+        item["email"] = keyPairs[7][index+1:endIndex]
+        
+        #dig into 'a' tag
+        index = keyPairs[8].find("href")
+        index = keyPairs[8].find(">",index)
+        endIndex = keyPairs[8].find("<",index)
+        item["webpage"] = keyPairs[8] [index+1:endIndex]
         
         yield item
     
@@ -296,7 +344,6 @@ class ProcurementSpider(BaseSpider):
         procurer_request.meta['OrgUrl'] = item['procuringEntityUrl']
         procurer_request.meta['type'] = "procuringOrg"
         #yield procurer_request
-        
         
         #now lets look at the tender documentation
         url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
