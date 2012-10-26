@@ -14,8 +14,10 @@ class ProcurementSpider(BaseSpider):
     allowed_domains = ["procurement.gov.ge", "tenders.procurement.gov.ge"]
     baseUrl = "https://tenders.procurement.gov.ge/public/"
     mainPageBaseUrl = baseUrl+"lib/controller.php?action=search_app&page="
+    userAgent = 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'
     start_urls = [mainPageBaseUrl+"1"]
     tenderCount = 0
+    failedRequests = []
     
     def make_requests_from_url(self, url):
         return Request(url, cookies={"SPALITE":self.sessionCookie},headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
@@ -136,6 +138,8 @@ class ProcurementSpider(BaseSpider):
             index = bidder.find("(",index)
             endIndex = bidder.find(")",index)
             item["OrgUrl"] = bidder[index+1:endIndex]
+           
+            print "orgUrl: "+ item["OrgUrl"] + " bid tender_id: " + item['tenderID']
     
             index = bidder.find("strong")
             index = bidder.find(">",index)
@@ -157,14 +161,16 @@ class ProcurementSpider(BaseSpider):
             endIndex = bidder.find("<",index)
             item["firstBidDate"] = bidder[index+1:endIndex]
             
-            item["numberOfBids"] = 0
+            index = bidder.find('align="center"',index)
+            index = bidder.find("[",index)
+            endIndex = bidder.find("]",index)
+            item["numberOfBids"] = bidder[index+1:endIndex]
             
             yield item
             
             #now lets use the company id to scrape the company data
             url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['OrgUrl']
-            organisation_request = Request(url, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie})
-            organisation_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')     
+            organisation_request = Request(url, errback=self.orgFailed, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie}, dont_filter=True, headers={"User-Agent":self.userAgent})
             organisation_request.meta['OrgUrl'] = item['OrgUrl']
             organisation_request.meta['type'] = "biddingOrg"
             yield organisation_request
@@ -211,6 +217,7 @@ class ProcurementSpider(BaseSpider):
         index = keyPairs[1].find(">",index)
         endIndex = keyPairs[1].find("<",index)
         item["OrgID"] = keyPairs[1][index+1:endIndex]
+        print "parsing Org: " + item['OrgUrl'] +" OrgID: "+ item['OrgID']
         
         index = keyPairs[2].find("/td")
         index = keyPairs[2].find("<td",index)
@@ -258,7 +265,6 @@ class ProcurementSpider(BaseSpider):
     
     def parseTender(self, response):
         self.tenderCount = self.tenderCount + 1
-        print "parsing Tender: "+str(self.tenderCount)
         hxs = HtmlXPathSelector(response)
         keyPairs = hxs.select('//tr/td').extract()  
         item = Tender()
@@ -338,31 +344,28 @@ class ProcurementSpider(BaseSpider):
         item['guaranteePeriod'] = keyPairs[35][index+1:endIndex]
     
         #now lets use the procuring entity id to find more info about the procurer
+        print "parsing Tender: " + item['tenderID'] +" procurerURL: "+ item['procuringEntityUrl']
         url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['procuringEntityUrl']
-        procurer_request = Request(url, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie})
-        procurer_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')     
+        procurer_request = Request(url, errback=self.orgFailed, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie}, dont_filter=True, headers={"User-Agent":self.userAgent})
         procurer_request.meta['OrgUrl'] = item['procuringEntityUrl']
         procurer_request.meta['type'] = "procuringOrg"
         #yield procurer_request
         
         #now lets look at the tender documentation
         url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
-        documentation_request = Request(url, callback=self.parseDocumentationPage, cookies={"SPALITE":self.sessionCookie})
-        documentation_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
+        documentation_request = Request(url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         documentation_request.meta['tenderID'] = item['tenderID']
         #yield documentation_request
         
         #now lets look at the bids made on this tender
         url = self.baseUrl+"lib/controller.php?action=app_bids&app_id="+item['tenderID']
-        bids_request = Request(url, callback=self.parseBidsPage, cookies={"SPALITE":self.sessionCookie})
-        bids_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
+        bids_request = Request(url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         bids_request.meta['tenderID'] = item['tenderID']
         #yield bids_request
         
         #finally lets look at the results of this tender
         url = self.baseUrl+"lib/controller.php?action=agency_docs&app_id="+item['tenderID']
-        results_request = Request(url, callback=self.parseResultsPage,cookies={"SPALITE":self.sessionCookie})
-        results_request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
+        results_request = Request(url, errback=self.resultFailed,callback=self.parseResultsPage,cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         results_request.meta['tenderID'] = item['tenderID']
         #yield results_request
         
@@ -379,9 +382,7 @@ class ProcurementSpider(BaseSpider):
             endIndex = tenderOnClickItem.find(",",index)
             index_url = tenderOnClickItem[index+1:endIndex]
             tender_url = base_tender_url+index_url
-            print "parsing"+tender_url
-            request = Request(tender_url, callback=self.parseTender, cookies={"SPALITE":self.sessionCookie})
-            request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')
+            request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
             request.meta['tenderUrl'] = index_url
             
             yield request
@@ -401,14 +402,38 @@ class ProcurementSpider(BaseSpider):
             return
         
         print "Starting scrape"  
-        for i in range(int(final_page)/2,int(final_page)/2+5):
+        for i in range(1,int(final_page)):
             url = self.mainPageBaseUrl+str(i)
-            request = Request(url, callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie})
-            request.headers.setdefault('User-Agent', 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')  
+            request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
             print "requesting index page: "+ str(i)
             yield request
 
 
+#ERROR HANDLING SECTION#
+    def urlPageFailed(self,error):
+        print "urlpager failed"
+        requestFailure = [self.parseTenderUrls, error.request.url]
+        self.failedRequests.append(requestFailure)
+    def tenderFailed(self,error):
+        print "tender failed "
+        requestFailure = [self.parseTender, error.request.url]
+        self.failedRequests.append(requestFailure)
+    def resultFailed(self,error):
+        print "result failed"
+        requestFailure = [self.parseResultsPage, error.request.url]
+        self.failedRequests.append(requestFailure)
+    def bidsFailed(self,error):
+        print "bidder failed"
+        requestFailure = [self.parseBidsPage, error.request.url]
+        self.failedRequests.append(requestFailure)
+    def documentationFailed(self,error):
+        print "documentation failed"
+        requestFailure = [self.parseDocumentationPage, error.request.url]
+        self.failedRequests.append(requestFailure)
+    def orgFailed(self,error):
+        print "org failed failed"
+        requestFailure = [self.parseOrganisation, error.request.url]
+        self.failedRequests.append(requestFailure)
 def main():
     from scrapy import signals
     from scrapy.xlib.pydispatch import dispatcher
@@ -424,19 +449,21 @@ def main():
     crawler.install()
     crawler.configure()
  
-    #first get cookie from dummy request
-    http = httplib2.Http()
-    url = "https://tenders.procurement.gov.ge/public/?go=1000"
-    headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
-    response, content = http.request(url, 'POST', headers=headers)
-    if( response['set-cookie'] ):
-        cookieString = response['set-cookie']
-        index = cookieString.find('SPALITE')
-        index = cookieString.find("=",index)
-        endIndex = cookieString.find(';',index)
-        spaLite = cookieString[index+1:endIndex]
+    def getSPACookie():
+        #first get cookie from dummy request
+        http = httplib2.Http()
+        url = "https://tenders.procurement.gov.ge/public/?go=1000"
+        headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
+        response, content = http.request(url, 'POST', headers=headers)
+        if( response['set-cookie'] ):
+            cookieString = response['set-cookie']
+            index = cookieString.find('SPALITE')
+            index = cookieString.find("=",index)
+            endIndex = cookieString.find(';',index)
+            spaLite = cookieString[index+1:endIndex]
+            return spaLite
 
- 
+    spaLite = getSPACookie()
     # schedule spider
     procurementSpider = ProcurementSpider()
     procurementSpider.setSessionCookie(spaLite)
@@ -445,8 +472,15 @@ def main():
     #start engine scrapy/twisted
     print "STARTING ENGINE"
     crawler.start()
-    print "ENGINE STOPPED"
- 
+    print "MAIN SCRAPE COMPLETE"
+
+    #lets go through our failed list greatly increase the amount of retrys we allowed and try and scrape them again with a fresh cookie
+    spaLite = getSPACookie()
+    failFile = open("failures.txt", 'wb')
+    for failedRequest in procurementSpider.failedRequests:
+        failFile.write(failedRequest[1])
+        failFile.write("\n")
+    failFile.close()
 if __name__ == '__main__':
     main()
         

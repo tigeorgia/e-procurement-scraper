@@ -82,6 +82,4 @@ class ProcurementscrapePipeline(object):
         self.tenderDocumentationFile.write("]")
         self.tenderAgreementsFile.close()
         
-        
-    
 
