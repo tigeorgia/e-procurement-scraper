@@ -13,31 +13,34 @@ class ProcurementscrapePipeline(object):
         
         self.startTime = datetime.datetime.now()
         nowStr = self.startTime.strftime("%Y-%m-%d %H:%M")
-        if not os.path.exists("Scrapes"):
-            os.makedirs("Scrapes")
-
-        os.chdir("Scrapes")
-        if not os.path.exists(nowStr):
-            os.makedirs(nowStr)
-            
-        os.chdir(nowStr)
+        if False:
+            if not os.path.exists("FullScrapes"):
+                os.makedirs("FullScrapes")
+            typeDir = "FullScrapes/"
+        else:
+            if not os.path.exists("IncrementalScrapes"):
+                os.makedirs("IncrementalScrapes")
+            typeDir = "IncrementalScrapes/"
+        scrapeDir = typeDir+nowStr
+        if not os.path.exists(scrapeDir):
+            os.makedirs(scrapeDir)
         
-        self.tendersfile = open("tenders.json", 'wb')
+        self.tendersfile = open(scrapeDir+"/"+"tenders.json", 'wb')
         self.tendersfile.write("[")
         
-        self.procuringEntitiesfile = open('organisations.json', 'wb')
+        self.procuringEntitiesfile = open(scrapeDir+"/"+'organisations.json', 'wb')
         self.procuringEntitiesfile.write("[")
         
-        self.tenderBiddersFile = open('tenderBidders.json', 'wb')
+        self.tenderBiddersFile = open(scrapeDir+"/"+'tenderBidders.json', 'wb')
         self.tenderBiddersFile.write("[")
         
-        self.tenderAgreementsFile = open('tenderAgreements.json', 'wb')
+        self.tenderAgreementsFile = open(scrapeDir+"/"+'tenderAgreements.json', 'wb')
         self.tenderAgreementsFile.write("[")
          
-        self.tenderDocumentationFile = open('tenderDocumentation.json', 'wb')
+        self.tenderDocumentationFile = open(scrapeDir+"/"+'tenderDocumentation.json', 'wb')
         self.tenderDocumentationFile.write("[")
         
-        self.infoFile = open('scrapeInfo.txt', 'wb')
+        self.infoFile = open(scrapeDir+"/"+'scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
         
     def process_item(self, item, spider):
@@ -64,7 +67,8 @@ class ProcurementscrapePipeline(object):
         minutes = int(timeTaken.seconds/60)
         seconds = timeTaken.seconds%60
         self.infoFile.write("Time Taken:    Days: %d    Minutes:    %d    Seconds    %d \n" % (timeTaken.days,minutes,seconds))
-        self.infoFile.write("Records scraped: %d" % (spider.tenderCount))
+        self.infoFile.write("Tenders scraped: %d \n" % (spider.tenderCount))
+        self.infoFile.write("firstTenderURL: " + spider.firstTender)
         self.infoFile.close()
         
         self.tendersfile.write("]")
@@ -80,6 +84,6 @@ class ProcurementscrapePipeline(object):
         self.tenderAgreementsFile.close()
         
         self.tenderDocumentationFile.write("]")
-        self.tenderAgreementsFile.close()
+        self.tenderDocumentationFile.close()
         
 

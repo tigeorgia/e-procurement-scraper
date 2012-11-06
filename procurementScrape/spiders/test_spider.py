@@ -6,6 +6,7 @@ from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
 from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument
+import os
 from time import sleep
 import httplib2
 
@@ -15,9 +16,10 @@ class ProcurementSpider(BaseSpider):
     baseUrl = "https://tenders.procurement.gov.ge/public/"
     mainPageBaseUrl = baseUrl+"lib/controller.php?action=search_app&page="
     userAgent = 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'
-    start_urls = [mainPageBaseUrl+"1"]
+    start_urls = [mainPageBaseUrl+"0"]
     tenderCount = 0
     failedRequests = []
+    performFullScrape = False
     
     def make_requests_from_url(self, url):
         return Request(url, cookies={"SPALITE":self.sessionCookie},headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
@@ -88,8 +90,8 @@ class ProcurementSpider(BaseSpider):
                         amendmentHtml = amendment.extract()
                         item = TenderAgreement()
                         item["tenderID"] = tenderID
-     
-                        item["AmendmentNumber"] = str(amendmentNumber + 1)
+                        amendmentNumber = amendmentNumber + 1
+                        item["AmendmentNumber"] = str(amendmentNumber)
                         item["OrgUrl"] = orgUrl
                         
                         if amendmentHtml.find("დისკვალიფიკაცია") > -1 :
@@ -373,24 +375,43 @@ class ProcurementSpider(BaseSpider):
         
     def parseTenderUrls(self, response):
         hxs = HtmlXPathSelector(response)
+        
         tenderOnClickItems = hxs.select('//table[@id="list_apps_by_subject"]//tr//@onclick').extract()
-
+        print "processing page: " + response.url
+        first = True
+        page = response.meta['page']
+        incrementalFinished = False
         for tenderOnClickItem in tenderOnClickItems:
             base_tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="
             index = tenderOnClickItem.find("ShowApp")
             index = tenderOnClickItem.find("(",index)
             endIndex = tenderOnClickItem.find(",",index)
             index_url = tenderOnClickItem[index+1:endIndex]
+            if not self.performFullScrape:
+                if index_url == response.meta['prevScrapeStartTender']:
+                    incrementalFinished = True
+                    break
             tender_url = base_tender_url+index_url
             request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
             request.meta['tenderUrl'] = index_url
             
+            #if this is the first page store the first tender as a marker so the incremental scraper knows where to stop.
+            if page == 1 and first:
+                self.firstTender = index_url
+            first = False
+            yield request
+            
+        if not incrementalFinished and page < int(response.meta['final_page']):
+            page = page+1
+            url = self.mainPageBaseUrl+str(page)
+            request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
+            request.meta['page'] = page
+            request.meta['final_page'] = response.meta['final_page']
             yield request
     
     def parse(self, response):
         #Find index of last page
         hxs = HtmlXPathSelector(response)
-
         totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
         
         index = totalPagesButton.find('/')
@@ -401,12 +422,44 @@ class ProcurementSpider(BaseSpider):
             #print "Parsing Error... stopping"
             return
         
-        print "Starting scrape"  
-        for i in range(1,int(final_page)):
-            url = self.mainPageBaseUrl+str(i)
-            request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
-            print "requesting index page: "+ str(i)
-            yield request
+        lastTenderURL = -1
+        if not self.performFullScrape:
+            #find where the last scrape left off
+            scrapeList = []
+            currentDir = os.getcwd()
+            if os.path.exists("FullScrapes"):
+                fullScrapes = os.listdir("FullScrapes")
+                
+            if os.path.exists("IncrementalScrapes"):
+                incrementalScrapes = os.listdir("IncrementalScrapes")
+            scrapeList = fullScrapes + incrementalScrapes
+            #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
+            scrapeList.sort()
+            while lastTenderURL == -1 and scrapeList.count > 0:
+                last = scrapeList.pop()
+                typeDir = "IncrementalScrapes"
+                if fullScrapes.__contains__(last):
+                    typeDir = "FullScrapes"
+                    
+                lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
+                
+                while 1:
+                    line = lastScrapeInfo.readline()
+                    if not line:
+                        break
+                    index = line.find("firstTenderURL")
+                    if index > -1:
+                        index = line.find(":")
+                        lastTenderURL = line[index+2:]
+                        break
+        print "Starting scrape"
+        url = self.mainPageBaseUrl+str(1)
+        request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
+        request.meta['page'] = 1
+        request.meta['final_page'] = int(final_page)
+        request.meta['prevScrapeStartTender'] = lastTenderURL
+        self.firstTender = lastTenderURL
+        yield request
 
 
 #ERROR HANDLING SECTION#
@@ -474,7 +527,7 @@ def main():
     crawler.start()
     print "MAIN SCRAPE COMPLETE"
 
-    #lets go through our failed list greatly increase the amount of retrys we allowed and try and scrape them again with a fresh cookie
+    #lets go through our failed list greatly increase the amount of retries we allowed and try and scrape them again with a fresh cookie
     spaLite = getSPACookie()
     failFile = open("failures.txt", 'wb')
     for failedRequest in procurementSpider.failedRequests:
