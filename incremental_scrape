@@ -1,0 +1,2 @@
+#!/bin/bash          
+  python procurementScrape/spiders/test_spider.py PARTIAL ../ProcurementSite/public/system

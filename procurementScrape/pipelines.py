@@ -9,11 +9,11 @@ from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAg
  
  
 class ProcurementscrapePipeline(object):
-    def __init__(self):
-        
+
+    def open_spider(self,spider):
         self.startTime = datetime.datetime.now()
         nowStr = self.startTime.strftime("%Y-%m-%d %H:%M")
-        if False:
+        if spider.performFullScrape:
             if not os.path.exists("FullScrapes"):
                 os.makedirs("FullScrapes")
             typeDir = "FullScrapes/"
@@ -25,6 +25,7 @@ class ProcurementscrapePipeline(object):
         if not os.path.exists(scrapeDir):
             os.makedirs(scrapeDir)
         
+        spider.setScrapePath(scrapeDir)
         self.tendersfile = open(scrapeDir+"/"+"tenders.json", 'wb')
         self.tendersfile.write("[")
         

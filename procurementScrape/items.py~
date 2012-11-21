@@ -32,6 +32,7 @@ class Organisation(Item):
     Name = Field()
     Country = Field()
     city = Field()
+    address = Field()
     phoneNumber = Field()
     faxNumber = Field()
     email = Field()
@@ -45,7 +46,7 @@ class TenderBidder(Item):
     firstBidDate = Field()
     lastBidAmount = Field()
     lastBidDate = Field()
-    numberOfBids= Field()
+    numberOfBids = Field()
     
 class TenderAgreement(Item):
     tenderID = Field()
@@ -57,9 +58,5 @@ class TenderAgreement(Item):
     documentUrl = Field()
 
 class TenderDocument(Item):
-    tenderID = Field()
-    documentUrl = Field()
-
-class TenderResultDocument(Item):
     tenderID = Field()
     documentUrl = Field()

@@ -1,4 +1,0 @@
-StartTime: 2012-10-19 17:56
-End Time: 2012-10-19 17:57
-Time Taken:    Days: 0    Minutes:    0    Seconds    44 
-Records scraped: 19
