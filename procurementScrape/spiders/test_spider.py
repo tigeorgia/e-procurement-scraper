@@ -46,7 +46,7 @@ class ProcurementSpider(BaseSpider):
             winnerDiv = resultsDividers[2]
             
             #check for disqualifications
-            if winnerDiv.find(u"დისკვალიფიკაცია") > -1 :
+            if winnerDiv.find(u"დისკვალიფიკაცია") > -1:
                 return
             
             tenderID = response.meta['tenderID']
@@ -89,7 +89,7 @@ class ProcurementSpider(BaseSpider):
             if resultsDividers.__len__() > 3:
                 amendments = resultsDividers[3]
                 #just to be sure
-                if amendments.find(u"ხელშეკრულების ცვლილება"):
+                if amendments.find(u"ხელშეკრულების ცვლილება") > -1:
                     #get all amendments
                     xAmendmentsTable = resultsDividersXPath[3]
                     xAmendments = xAmendmentsTable.select('.//tr')
@@ -101,7 +101,9 @@ class ProcurementSpider(BaseSpider):
                         item["AmendmentNumber"] = str(amendmentNumber)
                         item["OrgUrl"] = orgUrl
                         
-                        if amendmentHtml.find(u"დისკვალიფიკაცია") > -1 :
+
+                        #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation                         
+                        if amendmentHtml.find(u"დისკვალიფიკაცია") > -1:
                             #disqualified after an agreement was already signed
                             #need to revisit which values get set here
                             item["Amount"] = "NULL"                                 
@@ -109,7 +111,7 @@ class ProcurementSpider(BaseSpider):
                             item["ExpiryDate"] = "NULL"
                             item["documentUrl"] = "NULL"
                             yield item
-                        else :
+                        else:
                             index = amendmentHtml.find(u"ნომერი/თანხა")
                             endIndex = amendmentHtml.find(u"ლარი",index)
                             index = amendmentHtml.rfind("/",index,endIndex)
@@ -125,11 +127,14 @@ class ProcurementSpider(BaseSpider):
                             item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
                             
                             #find the document download section
-                            index = amendmentHtml.find('align="right',index)
-                            index = amendmentHtml.find("href",index)
-                            index = amendmentHtml.find('"',index)+1
-                            endIndex = amendmentHtml.find('"',index)
-                            item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex]
+                            if amendmentHtml.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
+                              item["documentUrl"] = "NULL"
+                            else:  
+                              index = amendmentHtml.find('align="right',index)
+                              index = amendmentHtml.find("href",index)
+                              index = amendmentHtml.find('"',index)+1
+                              endIndex = amendmentHtml.find('"',index)
+                              item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex]
                             yield item
 
                 
