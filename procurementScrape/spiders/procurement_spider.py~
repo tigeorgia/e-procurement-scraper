@@ -19,6 +19,10 @@ class ProcurementSpider(BaseSpider):
     userAgent = 'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'
     start_urls = [mainPageBaseUrl+"0"]
     tenderCount = 0
+    orgCount = 0
+    bidderCount = 0
+    agreementCount = 0
+    docCount = 0
     failedRequests = []
     performFullScrape = True
     
@@ -35,7 +39,6 @@ class ProcurementSpider(BaseSpider):
         self.scrapePath = path
         
     def parseResultsPage(self,response):
-        #print "parsing results"
         hxs = HtmlXPathSelector(response)
         resultsDividersXPath = hxs.select('//div[contains(@id, "agency_docs")]//div')
         resultsDividers = resultsDividersXPath.extract()
@@ -44,100 +47,139 @@ class ProcurementSpider(BaseSpider):
         
         if resultsDividers.__len__() >= 3:
             winnerDiv = resultsDividers[2]
-            
-            #check for disqualifications
-            if winnerDiv.find(u"დისკვალიფიკაცია") > -1 :
-                return
-            
             tenderID = response.meta['tenderID']
-            amendmentNumber = 0
-            item = TenderAgreement()
-            item["tenderID"] = tenderID
-            item["AmendmentNumber"] = str(amendmentNumber)
-            
-            index = winnerDiv.find("ShowProfile")
-            index = winnerDiv.find("(",index)
-            endIndex = winnerDiv.find(")",index)
-            
-            orgUrl = winnerDiv[index+1:endIndex]
-            item["OrgUrl"] = orgUrl
-                    
-            index = winnerDiv.find(u"ნომერი/თანხა")
-            endIndex = winnerDiv.find(u"ლარი",index)
-            index = winnerDiv.rfind("/",index,endIndex)
-            item["Amount"] = winnerDiv[index+1:endIndex].strip()
-            
-            index = winnerDiv.find(u"ძალაშია",index)
-            index = winnerDiv.find(":",index)
-            endIndex = winnerDiv.find("-",index)
-            item["StartDate"] = winnerDiv[index+1:endIndex].strip()
-            
-            index = endIndex
-            endIndex = winnerDiv.find("<",index)
-            item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
-            
-            #find the document download section
-            index = winnerDiv.find('align="right',index)
-            index = winnerDiv.find("href",index)
-            index = winnerDiv.find('"',index)+1
-            endIndex = winnerDiv.find('"',index)
-            item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
-            
-            yield item
-            
-            #check for contract amendment
-            if resultsDividers.__len__() > 3:
-                amendments = resultsDividers[3]
-                #just to be sure
-                if amendments.find(u"ხელშეკრულების ცვლილება") > -1:
-                    #get all amendments
-                    xAmendmentsTable = resultsDividersXPath[3]
-                    xAmendments = xAmendmentsTable.select('.//tr')
-                    for amendment in xAmendments:
-                        amendmentHtml = amendment.extract()
-                        item = TenderAgreement()
-                        item["tenderID"] = tenderID
-                        amendmentNumber = amendmentNumber + 1
-                        item["AmendmentNumber"] = str(amendmentNumber)
-                        item["OrgUrl"] = orgUrl
-                        
+            #parse results section if there is one
+            if winnerDiv.find(u"ხელშეკრულება") > -1:    
+              amendmentNumber = 0
+              item = TenderAgreement()
+              item["tenderID"] = tenderID
+              item["AmendmentNumber"] = str(amendmentNumber)
+              
+              index = winnerDiv.find("ShowProfile")
+              index = winnerDiv.find("(",index)
+              endIndex = winnerDiv.find(")",index)
+              
+              orgUrl = winnerDiv[index+1:endIndex]
+              item["OrgUrl"] = orgUrl
+                      
+              index = winnerDiv.find(u"ნომერი/თანხა")
+              endIndex = winnerDiv.find(u"ლარი",index)
+              index = winnerDiv.rfind("/",index,endIndex)
+              item["Amount"] = winnerDiv[index+1:endIndex].strip()
+              
+              index = winnerDiv.find(u"ძალაშია",index)
+              index = winnerDiv.find(":",index)
+              endIndex = winnerDiv.find("-",index)
+              item["StartDate"] = winnerDiv[index+1:endIndex].strip()
+              
+              index = endIndex
+              endIndex = winnerDiv.find("<",index)
+              item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+              
+              #find the document download section
+              index = winnerDiv.find('align="right',index)
+              index = winnerDiv.find("href",index)
+              index = winnerDiv.find('"',index)+1
+              endIndex = winnerDiv.find('"',index)
+              item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
 
-                        #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation                         
-                        if amendmentHtml.find(u"დისკვალიფიკაცია") > -1:
-                            #disqualified after an agreement was already signed
-                            #need to revisit which values get set here
-                            item["Amount"] = "NULL"                                 
-                            item["StartDate"] = "NULL"                                 
-                            item["ExpiryDate"] = "NULL"
-                            item["documentUrl"] = "NULL"
-                            yield item
-                        else:
-                            index = amendmentHtml.find(u"ნომერი/თანხა")
-                            endIndex = amendmentHtml.find(u"ლარი",index)
-                            index = amendmentHtml.rfind("/",index,endIndex)
-                            item["Amount"] = amendmentHtml[index+1:endIndex].strip()
-                            
-                            index = amendmentHtml.find(u"ძალაშია",index)
-                            index = amendmentHtml.find(":",index)
-                            endIndex = amendmentHtml.find("-",index)
-                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-                            
-                            index = endIndex
-                            endIndex = amendmentHtml.find("<",index)
-                            item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
-                            
-                            #find the document download section
-                            if amendmentHtml.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
-                              item["documentUrl"] = "NULL"
-                            else:  
-                              index = amendmentHtml.find('align="right',index)
-                              index = amendmentHtml.find("href",index)
-                              index = amendmentHtml.find('"',index)+1
-                              endIndex = amendmentHtml.find('"',index)
-                              item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex]
-                            yield item
+              self.agreementCount = self.agreementCount + 1
+              yield item
+            
+              #check for contract amendment
+              if resultsDividers.__len__() > 3:
+                  amendments = resultsDividers[3]
+                  #just to be sure
+                  if amendments.find(u"ხელშეკრულების ცვლილება") > -1:
+                      #get all amendments
+                      xAmendmentsTable = resultsDividersXPath[3]
+                      xAmendments = xAmendmentsTable.select('.//tr')
+                      for amendment in xAmendments:
+                          amendmentHtml = amendment.extract()
+                          item = TenderAgreement()
+                          item["tenderID"] = tenderID
+                          amendmentNumber = amendmentNumber + 1
+                          item["AmendmentNumber"] = str(amendmentNumber)
+                          item["OrgUrl"] = orgUrl
+                          self.agreementCount = self.agreementCount + 1
+                          #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation                         
+                          if amendmentHtml.find(u"დისკვალიფიკაცია") > -1:
+                              #disqualified after an agreement was already signed
+                              #need to revisit which values get set here
+                              item["Amount"] = "NULL"                                 
+                              item["StartDate"] = "NULL"                                 
+                              item["ExpiryDate"] = "NULL"
+                              item["documentUrl"] = "disqualified"
+                              yield item
+                          else:
+                              index = amendmentHtml.find(u"ნომერი/თანხა")
+                              endIndex = amendmentHtml.find(u"ლარი",index)
+                              index = amendmentHtml.rfind("/",index,endIndex)
+                              item["Amount"] = amendmentHtml[index+1:endIndex].strip()
+                              
+                              index = amendmentHtml.find(u"ძალაშია",index)
+                              index = amendmentHtml.find(":",index)
+                              endIndex = amendmentHtml.find("-",index)
+                              item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+                              
+                              index = endIndex
+                              endIndex = amendmentHtml.find("<",index)
+                              item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                              
+                              #find the document download section
+                              if amendmentHtml.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
+                                  item["documentUrl"] = "Treaty Correction: No Document"
+                              else:  
+                                  index = amendmentHtml.find('align="right',index)
+                                  index = amendmentHtml.find("href",index)
+                                  index = amendmentHtml.find('"',index)+1
+                                  endIndex = amendmentHtml.find('"',index)
+                                  item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex]
+                              yield item
+            #the contract has been refused list all refusals            
+            elif winnerDiv.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:
+                  amendmentNumber = 0
+                  xpath = HtmlXPathSelector(text=winnerDiv)
+                  biddersRows = xpath.select('//tr').extract()
+                  for row in biddersRows:
+                    fields = HtmlXPathSelector(text=row).select('//td').extract()
+                    item = TenderAgreement()
+                    item["tenderID"] = tenderID
+                    item["AmendmentNumber"] = str(amendmentNumber)
+                    item["Amount"] = "-1"      
 
-                
+                    conditions = "width",">","</"                          
+                    item["StartDate"] = self.findData( fields, conditions, -1 )                                 
+                    item["documentUrl"] = "bidder refused agreement"
+                    conditions = "strong",">","</"
+                    item["OrgUrl"] = self.findData( fields, conditions, -1 )
+                    amendmentNumber = amendmentNumber + 1
+                    yield item
+            #check for disqualifications
+            elif winnerDiv.find(u"დისკვალიფიკაცია") > -1:       
+              item = TenderAgreement()
+              item["tenderID"] = tenderID
+              item["AmendmentNumber"] = str(0)
+              item["Amount"] = "-1"                             
+              item["StartDate"] = "NULL"                            
+              item["documentUrl"] = "disqualifed"
+              item["OrgUrl"] = "NULL"
+              print "disqualified"
+              print tenderID
+              yield item
+
+            #unknown stuff
+            else:
+              item = TenderAgreement()
+              item["tenderID"] = tenderID
+              item["AmendmentNumber"] = str(0)
+              item["Amount"] = "-1"                             
+              item["StartDate"] = "NULL"                            
+              item["documentUrl"] = "unknown"
+              item["OrgUrl"] = "NULL"
+              print "unknown agreement"
+              print tenderID
+              yield item   
     
     def parseBidsPage(self,response):
         #print "parsing bids"
@@ -147,13 +189,12 @@ class ProcurementSpider(BaseSpider):
             return
         for bidder in bidRows:
             item = TenderBidder()
+            self.bidderCount = self.bidderCount + 1
             item["tenderID"] = response.meta['tenderID']
             index = bidder.find("ShowProfile")
             index = bidder.find("(",index)
             endIndex = bidder.find(")",index)
             item["OrgUrl"] = bidder[index+1:endIndex]
-           
-            print "orgUrl: "+ item["OrgUrl"] + " bid tender_id: " + item['tenderID']
     
             index = bidder.find("strong")
             index = bidder.find(">",index)
@@ -206,10 +247,12 @@ class ProcurementSpider(BaseSpider):
             dataArray = rawData.split(".")
             url = self.baseUrl+"lib/files.php?mode=app&"
             item["documentUrl"] = url+"file="+dataArray[0]+"&code="+dataArray[1]
+            self.docCount = self.docCount + 1
             yield item
         
     
     def parseOrganisation(self,response):
+        self.orgCount = self.orgCount + 1
         #print "parsing procurer"
         hxs = HtmlXPathSelector(response)
         keyPairs = hxs.select('//div[contains(@id, "profile_dialog")]//tr').extract()
@@ -231,7 +274,7 @@ class ProcurementSpider(BaseSpider):
         index = keyPairs[1].find(">",index)
         endIndex = keyPairs[1].find("<",index)
         item["OrgID"] = keyPairs[1][index+1:endIndex]
-        print "parsing Org: " + item['OrgUrl'] +" OrgID: "+ item['OrgID']
+        #print "parsing Org: " + item['OrgUrl'] +" OrgID: "+ item['OrgID']
         
         index = keyPairs[2].find("/td")
         index = keyPairs[2].find("<td",index)
@@ -277,85 +320,90 @@ class ProcurementSpider(BaseSpider):
         
         yield item
     
+
+
+    def findKeyValue(self, keyString, pairs, conditions, direction = 1 ):
+        keyCondition = (keyString, )
+        result = self.findData( pairs, keyCondition, -1 )
+        if result[0] is not None:
+            result = self.findData( pairs, conditions, result[1]+direction )
+        return result[0]
+
+    def findData(self, keypairs, conditionList, startPair ):
+        result = [None, -1]
+        for i, keyPair in enumerate(keypairs):       
+            if i >= startPair:        
+                index = 0
+                prevIndex = -1
+                found = True
+                #I make the assumption that the 2nd last index I calculate will be the start of substring
+                #and the last index is the end of the substring so I need to always keep track of the 2nd last index
+                for condition in conditionList:
+                    searchIndex = keyPair.find(condition,index)
+                    if searchIndex == -1:
+                        found = False
+                        break;
+                    prevIndex = index
+                    index = searchIndex
+                if found:
+                    result[0] = keyPair[prevIndex+1:index]
+                    result[1] = i
+                    return result
+        return result
+    
     def parseTender(self, response):
         self.tenderCount = self.tenderCount + 1
         hxs = HtmlXPathSelector(response)
         keyPairs = hxs.select('//tr/td').extract()  
         item = Tender()
-   
-        item['tenderID'] =  response.meta['tenderUrl']
+     
+        item['tenderID'] = response.meta['tenderUrl']
+        conditions = "ShowProfile","(", ")"
+        result = self.findData( keyPairs, conditions, -1 )
+        item['procuringEntityUrl'] = result[0]
         
-        index = keyPairs[7].find("ShowProfile")
-        index = keyPairs[7].find("(",index)
-        endIndex = keyPairs[7].find(")",index)
-        item['procuringEntityUrl'] = keyPairs[7][index+1:endIndex]
+        conditions = "<img", ">", "</"
+        result = self.findData( keyPairs, conditions, result[1] )
+        item['procuringEntityName'] = result[0].strip()
+ 
+        #find "tender type" string
+        conditions = ( u"ტენდერის ტიპი", )
+        result = self.findData( keyPairs, conditions, -1 )
+        #now we know where the tender type is we parse the next list item to get the value        
+        conditions = ">","<"
+        result = self.findData( keyPairs, conditions, result[1] )
+        item['tenderType'] = result[0].strip()
         
-        index = keyPairs[7].find("<img")
-        index = keyPairs[7].find(">", index)
-        endIndex = keyPairs[7].find("</",index)
-        item['procuringEntityName'] = keyPairs[7][index+1:endIndex].strip()
-        
-        index = keyPairs[1].find(">")
-        endIndex = keyPairs[1].find("<",index)
-        item['tenderType'] = keyPairs[1][index+1:endIndex].strip()
-        
-        index = keyPairs[3].find("strong")
-        index = keyPairs[3].find(">",index)
-        endIndex = keyPairs[3].find("<",index)
-        item['tenderRegistrationNumber'] = keyPairs[3][index+1:endIndex]
+        #same process as above
+        conditions = "strong",">","<"
+        item['tenderRegistrationNumber']  = self.findKeyValue( u"სატენდერო განცხადების ნომერი", keyPairs, conditions )
 
-        index = keyPairs[5].find("img")
-        index = keyPairs[5].find(">",index)
-        endIndex = keyPairs[5].find("<",index)
-        item['tenderStatus'] = keyPairs[5][index+1:endIndex].strip()
+        conditions =  "img",">","<"
+        item['tenderStatus']  = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions ).strip()
         
-        index = keyPairs[9].find(">")
-        endIndex = keyPairs[9].find("<",index)
-        item['tenderAnnouncementDate'] = keyPairs[9][index+1:endIndex]
+        conditions = ">","<"
+        item['tenderAnnouncementDate'] =   self.findKeyValue( u"ტენდერის გამოცხადების თარიღი", keyPairs, conditions )       
+        item['bidsStartDate'] =  self.findKeyValue( u"წინადადებების მიღება იწყება", keyPairs, conditions )       
+        item['bidsEndDate'] =  self.findKeyValue( u"წინადადებების მიღება მთავრდება", keyPairs, conditions )
         
-        index = keyPairs[11].find(">")
-        endIndex = keyPairs[11].find("<",index)
-        item['bidsStartDate'] = keyPairs[11][index+1:endIndex]
-        
-        index = keyPairs[11].find(">")
-        endIndex = keyPairs[11].find("<",index)
-        item['bidsEndDate'] = keyPairs[13][index+1:endIndex]
-        
-        index = keyPairs[15].find("span")
-        index = keyPairs[15].find(">",index)
-        endIndex = keyPairs[15].find("<",index)
-        item['estimatedValue'] = keyPairs[15][index+1:endIndex].replace("`","").replace("GEL","").strip()
-        
-        #item['includeVat']
-        index = keyPairs[19].find("/strong")
-        index = keyPairs[19].find(">",index)
-        endIndex = keyPairs[19].find("<",index)
-        item['cpvCode'] = keyPairs[19][index+1:endIndex].strip() 
-        
-        index = keyPairs[25].find("blabla")
-        index = keyPairs[25].find(">",index)
-        endIndex = keyPairs[25].find("</",index)
-        item['info'] = keyPairs[25][index+1:endIndex]
-        
-        index = keyPairs[27].find(">")
-        endIndex = keyPairs[27].find("</",index)
-        item['amountToSupply'] = keyPairs[27][index+1:endIndex]
-        
-        index = keyPairs[29].find(">")
-        endIndex = keyPairs[29].find("</",index)
-        item['supplyPeriod'] = keyPairs[29][index+1:endIndex]
-  
-        index = keyPairs[31].find(">")
-        endIndex = keyPairs[31].find("</",index)
-        item['offerStep'] = keyPairs[31][index+1:endIndex]
+        conditions = "span", ">", "<"
+        val =  self.findKeyValue( u"შესყიდვის სავარაუდო ღირებულება", keyPairs, conditions )
+        if val == None:
+          val =  self.findKeyValue( u"პრეისკურანტის სავარაუდო ღირებულება", keyPairs, conditions )
+        item['estimatedValue'] = val.replace("`","").replace("GEL","").strip()
 
-        index = keyPairs[33].find(">")
-        endIndex = keyPairs[33].find("</",index)
-        item['guaranteeAmount'] = keyPairs[33][index+1:endIndex]
-
-        index = keyPairs[35].find(">")
-        endIndex = keyPairs[35].find("</",index)
-        item['guaranteePeriod'] = keyPairs[35][index+1:endIndex]
+        conditions = "/strong",">","<"
+        item['cpvCode'] =  self.findKeyValue( u"შესყიდვის კატეგორია", keyPairs, conditions ).strip() 
+        
+        conditions = "blabla",">","</"
+        item['info'] =  self.findKeyValue( u"დამატებითი ინფორმაცია", keyPairs, conditions )
+        
+        conditions = ">","</"
+        item['amountToSupply'] =  self.findKeyValue( u"შესყიდვის რაოდენობა ან მოცულობა", keyPairs, conditions ) 
+        item['supplyPeriod'] =  self.findKeyValue( u"მოწოდების ვადა", keyPairs, conditions )
+        item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
+        item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
+        item['guaranteePeriod'] =  self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
     
         #now lets use the procuring entity id to find more info about the procurer
         print "parsing Tender: " + item['tenderID'] +" procurerURL: "+ item['procuringEntityUrl']
@@ -388,7 +436,7 @@ class ProcurementSpider(BaseSpider):
         hxs = HtmlXPathSelector(response)
         
         tenderOnClickItems = hxs.select('//table[@id="list_apps_by_subject"]//tr//@onclick').extract()
-        print "processing page: " + response.url
+        #print "processing page: " + response.url
         first = True
         page = response.meta['page']
         incrementalFinished = False
@@ -407,7 +455,7 @@ class ProcurementSpider(BaseSpider):
             
             #if this is the first page store the first tender as a marker so the incremental scraper knows where to stop.
             if page == 1 and first:
-                self.firstTender = index_url
+              self.firstTender = index_url
             first = False
             yield request
             
@@ -463,7 +511,7 @@ class ProcurementSpider(BaseSpider):
                         break
         print "Starting scrape"
         url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
+        metadata = {"page": 500, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         self.firstTender = lastTenderURL
         

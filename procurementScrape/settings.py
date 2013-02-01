@@ -7,11 +7,9 @@
 #
 
 BOT_NAME = 'procurementScrape'
-BOT_VERSION = '1.0'
 
 SPIDER_MODULES = ['procurementScrape.spiders']
 NEWSPIDER_MODULE = 'procurementScrape.spiders'
-USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
 COOKIES_DEBUG = True
 
 CONCURRENT_REQUESTS = 16
