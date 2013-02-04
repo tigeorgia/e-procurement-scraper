@@ -67,14 +67,23 @@ class ProcurementSpider(BaseSpider):
               index = winnerDiv.rfind("/",index,endIndex)
               item["Amount"] = winnerDiv[index+1:endIndex].strip()
               
-              index = winnerDiv.find(u"ძალაშია",index)
-              index = winnerDiv.find(":",index)
-              endIndex = winnerDiv.find("-",index)
-              item["StartDate"] = winnerDiv[index+1:endIndex].strip()
-              
-              index = endIndex
-              endIndex = winnerDiv.find("<",index)
-              item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+              #there seem to be 2 different types of agreement date types
+              #one has a single Contract validity date and the other has a start and end date
+              validityIndex = winnerDiv.find(u"ხელშეკრულება ძალაშია",index)
+              if validityIndex > -1:
+                index = winnerDiv.find("date",validityIndex)
+                index = winnerDiv.find(">",index)
+                endIndex = winnerDiv.find("</",index)
+                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+              else:
+                index = winnerDiv.find(u"ძალაშია",index)
+                index = winnerDiv.find(":",index)
+                endIndex = winnerDiv.find("-",index)
+                item["StartDate"] = winnerDiv[index+1:endIndex].strip()
+                
+                index = endIndex
+                endIndex = winnerDiv.find("<",index)
+                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
               
               #find the document download section
               index = winnerDiv.find('align="right',index)
@@ -153,20 +162,30 @@ class ProcurementSpider(BaseSpider):
                     item["documentUrl"] = "bidder refused agreement"
                     conditions = "strong",">","</"
                     item["OrgUrl"] = self.findData( fields, conditions, -1 )
+                    item["ExpiryDate"] = "NULL"
                     amendmentNumber = amendmentNumber + 1
                     yield item
             #check for disqualifications
-            elif winnerDiv.find(u"დისკვალიფიკაცია") > -1:       
-              item = TenderAgreement()
-              item["tenderID"] = tenderID
-              item["AmendmentNumber"] = str(0)
-              item["Amount"] = "-1"                             
-              item["StartDate"] = "NULL"                            
-              item["documentUrl"] = "disqualifed"
-              item["OrgUrl"] = "NULL"
-              print "disqualified"
-              print tenderID
-              yield item
+            elif winnerDiv.find(u"დისკვალიფიკაცია") > -1:
+              amendmentNumber = 0
+              xpath = HtmlXPathSelector(text=winnerDiv)
+              biddersRows = xpath.select('//tr').extract()
+              for row in biddersRows:
+                fields = HtmlXPathSelector(text=row).select('//td').extract()
+                item = TenderAgreement()
+                item["tenderID"] = tenderID
+                item["AmendmentNumber"] = str(amendmentNumber)
+                  
+                conditions = "width",">","</"                          
+                item["StartDate"] = self.findData( fields, conditions, -1 )                                 
+                item["documentUrl"] = "disqualifed"
+                conditions = "strong",">","</"
+                item["OrgUrl"] = self.findData( fields, conditions, -1 )
+                conditions = "right",">","</td"
+                item["Amount"] =  self.findData( fields, conditions, -1 )
+                item["ExpiryDate"] = "NULL"
+                amendmentNumber = amendmentNumber + 1
+                yield item
 
             #unknown stuff
             else:
@@ -177,8 +196,7 @@ class ProcurementSpider(BaseSpider):
               item["StartDate"] = "NULL"                            
               item["documentUrl"] = "unknown"
               item["OrgUrl"] = "NULL"
-              print "unknown agreement"
-              print tenderID
+              item["ExpiryDate"] = "NULL"
               yield item   
     
     def parseBidsPage(self,response):
