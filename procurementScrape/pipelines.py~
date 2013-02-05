@@ -69,7 +69,11 @@ class ProcurementscrapePipeline(object):
         seconds = timeTaken.seconds%60
         self.infoFile.write("Time Taken:    Days: %d    Minutes:    %d    Seconds    %d \n" % (timeTaken.days,minutes,seconds))
         self.infoFile.write("Tenders scraped: %d \n" % (spider.tenderCount))
-        self.infoFile.write("firstTenderURL: " + spider.firstTender)
+	      self.infoFile.write("Orgs scraped: %d \n" % (spider.orgCount))
+	      self.infoFile.write("bidders scraped: %d \n" % (spider.bidderCount))
+	      self.infoFile.write("agreements scraped: %d \n" % (spider.agreementCount))
+	      self.infoFile.write("documents scraped: %d \n" % (spider.docCount))
+        self.infoFile.write("firstTenderURL: %d" % (spider.firstTender))
         self.infoFile.close()
         
         self.tendersfile.write("]")
