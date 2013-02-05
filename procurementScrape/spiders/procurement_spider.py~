@@ -617,7 +617,7 @@ def main():
     if isFullScrape:
       requestURL=requestURL+"process_full_scrape"
     else:
-      requestURL=requestURL+"process_incremental_scrape"
+      requestURL=requestURL+"process_full_scrape"
     http = httplib2.Http()
     http.request(requestURL, 'GET')
     

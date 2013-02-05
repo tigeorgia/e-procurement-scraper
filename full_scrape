@@ -1,2 +1,2 @@
 #!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py FULL ../app/public/system
+  python procurementScrape/spiders/procurement_spider.py FULL ../app/current/public/system
