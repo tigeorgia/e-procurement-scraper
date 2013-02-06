@@ -48,6 +48,7 @@ class ProcurementSpider(BaseSpider):
         if resultsDividers.__len__() >= 3:
             winnerDiv = resultsDividers[2]
             tenderID = response.meta['tenderID']
+
             #parse results section if there is one
             if winnerDiv.find(u"ხელშეკრულება") > -1:    
               amendmentNumber = 0
@@ -63,7 +64,7 @@ class ProcurementSpider(BaseSpider):
               item["OrgUrl"] = orgUrl
                       
               index = winnerDiv.find(u"ნომერი/თანხა")
-              endIndex = winnerDiv.find(u"ლარი",index)
+              endIndex = winnerDiv.find("<br",index)
               index = winnerDiv.rfind("/",index,endIndex)
               item["Amount"] = winnerDiv[index+1:endIndex].strip()
               
@@ -158,10 +159,10 @@ class ProcurementSpider(BaseSpider):
                     item["Amount"] = "-1"      
 
                     conditions = "width",">","</"                          
-                    item["StartDate"] = self.findData( fields, conditions, -1 )                                 
+                    item["StartDate"] = self.findData( fields, conditions, -1 )[0]                               
                     item["documentUrl"] = "bidder refused agreement"
                     conditions = "strong",">","</"
-                    item["OrgUrl"] = self.findData( fields, conditions, -1 )
+                    item["OrgUrl"] = self.findData( fields, conditions, -1 )[0]
                     item["ExpiryDate"] = "NULL"
                     amendmentNumber = amendmentNumber + 1
                     yield item
@@ -177,12 +178,12 @@ class ProcurementSpider(BaseSpider):
                 item["AmendmentNumber"] = str(amendmentNumber)
                   
                 conditions = "width",">","</"                          
-                item["StartDate"] = self.findData( fields, conditions, -1 )                                 
+                item["StartDate"] = self.findData( fields, conditions, -1 )[0]                                
                 item["documentUrl"] = "disqualifed"
                 conditions = "strong",">","</"
-                item["OrgUrl"] = self.findData( fields, conditions, -1 )
+                item["OrgUrl"] = self.findData( fields, conditions, -1 )[0]
                 conditions = "right",">","</td"
-                item["Amount"] =  self.findData( fields, conditions, -1 )
+                item["Amount"] =  "-1"
                 item["ExpiryDate"] = "NULL"
                 amendmentNumber = amendmentNumber + 1
                 yield item
@@ -529,7 +530,7 @@ class ProcurementSpider(BaseSpider):
                         break
         print "Starting scrape"
         url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 500, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
+        metadata = {"page": 500, "final_page": int(700), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         self.firstTender = lastTenderURL
         
@@ -617,7 +618,7 @@ def main():
     if isFullScrape:
       requestURL=requestURL+"process_full_scrape"
     else:
-      requestURL=requestURL+"process_full_scrape"
+      requestURL=requestURL+"process_incremental_scrape"
     http = httplib2.Http()
     http.request(requestURL, 'GET')
     
