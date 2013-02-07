@@ -530,7 +530,7 @@ class ProcurementSpider(BaseSpider):
                         break
         print "Starting scrape"
         url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 500, "final_page": int(600), "prevScrapeStartTender": lastTenderURL}
+        metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         self.firstTender = lastTenderURL
         
