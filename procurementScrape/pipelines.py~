@@ -5,6 +5,8 @@
 import json
 import datetime
 import os
+import re
+from scrapy.contrib.exporter import JsonLinesItemExporter
 from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument
  
  
@@ -26,38 +28,55 @@ class ProcurementscrapePipeline(object):
             os.makedirs(scrapeDir)
         
         spider.setScrapePath(scrapeDir)
-        self.tendersfile = open(scrapeDir+"/"+"tenders.json", 'wb')
-        self.tendersfile.write("[")
-        
-        self.procuringEntitiesfile = open(scrapeDir+"/"+'organisations.json', 'wb')
-        self.procuringEntitiesfile.write("[")
-        
-        self.tenderBiddersFile = open(scrapeDir+"/"+'tenderBidders.json', 'wb')
-        self.tenderBiddersFile.write("[")
-        
-        self.tenderAgreementsFile = open(scrapeDir+"/"+'tenderAgreements.json', 'wb')
-        self.tenderAgreementsFile.write("[")
-         
+        self.tendersfile = open(scrapeDir+"/"+"tenders.json", 'wb') 
+        self.procuringEntitiesfile = open(scrapeDir+"/"+'organisations.json', 'wb')      
+        self.tenderBiddersFile = open(scrapeDir+"/"+'tenderBidders.json', 'wb')        
+        self.tenderAgreementsFile = open(scrapeDir+"/"+'tenderAgreements.json', 'wb')      
         self.tenderDocumentationFile = open(scrapeDir+"/"+'tenderDocumentation.json', 'wb')
-        self.tenderDocumentationFile.write("[")
-        
+
+        self.tenderExporter = JsonLinesItemExporter(self.tendersfile)
+        self.tenderExporter.start_exporting()
+        self.procurerExporter = JsonLinesItemExporter(self.procuringEntitiesfile)
+        self.procurerExporter.start_exporting()
+        self.biddersExporter = JsonLinesItemExporter(self.tenderBiddersFile)
+        self.biddersExporter.start_exporting()
+        self.agreementExporter = JsonLinesItemExporter(self.tenderAgreementsFile)
+        self.agreementExporter.start_exporting()
+        self.documentationExporter = JsonLinesItemExporter(self.tenderDocumentationFile)
+        self.documentationExporter.start_exporting()        
         self.infoFile = open(scrapeDir+"/"+'scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
         
     def process_item(self, item, spider):
-        line = json.dumps(dict(item)) + ","
-        
         if isinstance(item, Tender):
-            self.tendersfile.write(line)
+          self.tenderExporter.export_item(item)
         elif isinstance(item, Organisation):
-            self.procuringEntitiesfile.write(line)
+          self.procurerExporter.export_item(item)
         elif isinstance(item, TenderBidder):
-            self.tenderBiddersFile.write(line)
+          self.biddersExporter.export_item(item)
         elif isinstance(item, TenderAgreement):
-            self.tenderAgreementsFile.write(line)
+          self.agreementExporter.export_item(item)
         elif isinstance(item, TenderDocument):
-            self.tenderDocumentationFile.write(line)
+          self.documentationExporter.export_item(item)
         return item
+
+   #for key, value in item.iteritems():
+          #newVal = re.sub('"','/"',value)
+          #item[key] = newVal
+
+        #line = json.dumps(dict(item)) + ","
+        
+        #if isinstance(item, Tender):
+       #     self.tendersfile.write(line)
+       # elif isinstance(item, Organisation):
+        #    self.procuringEntitiesfile.write(line)
+       # elif isinstance(item, TenderBidder):
+       #     self.tenderBiddersFile.write(line)
+       # elif isinstance(item, TenderAgreement):
+       #     self.tenderAgreementsFile.write(line)
+       # elif isinstance(item, TenderDocument):
+       #     self.tenderDocumentationFile.write(line)
+       # return item
     
     def close_spider(self,spider):
         self.endTime = datetime.datetime.now()
@@ -73,22 +92,20 @@ class ProcurementscrapePipeline(object):
         self.infoFile.write("bidders scraped: %d \n" % (spider.bidderCount))
         self.infoFile.write("agreements scraped: %d \n" % (spider.agreementCount))
         self.infoFile.write("documents scraped: %d \n" % (spider.docCount))
-        self.infoFile.write("firstTenderURL: %d" % (spider.firstTender))
+        print spider.firstTender
+        self.infoFile.write("firstTenderURL: %d" % int(spider.firstTender))
         self.infoFile.close()
         
-        self.tendersfile.write("]")
+
+        self.tenderExporter.finish_exporting()
+        self.procurerExporter.finish_exporting()
+        self.biddersExporter.finish_exporting()
+        self.agreementExporter.finish_exporting()
+        self.documentationExporter.finish_exporting()
         self.tendersfile.close()
-        
-        self.procuringEntitiesfile.write("]")
         self.procuringEntitiesfile.close()
-        
-        self.tenderBiddersFile.write("]")
         self.tenderBiddersFile.close()
-        
-        self.tenderAgreementsFile.write("]")
-        self.tenderAgreementsFile.close()
-        
-        self.tenderDocumentationFile.write("]")
+        self.tenderAgreementsFile.close()       
         self.tenderDocumentationFile.close()
         
 

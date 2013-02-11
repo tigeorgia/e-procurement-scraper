@@ -532,8 +532,6 @@ class ProcurementSpider(BaseSpider):
         url = self.mainPageBaseUrl+str(1)
         metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
-        self.firstTender = lastTenderURL
-        
         yield request
 
 
