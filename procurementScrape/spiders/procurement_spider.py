@@ -384,16 +384,10 @@ class ProcurementSpider(BaseSpider):
         conditions = "<img", ">", "</"
         result = self.findData( keyPairs, conditions, result[1] )
         item['procuringEntityName'] = result[0].strip()
- 
-        #find "tender type" string
-        conditions = ( u"ტენდერის ტიპი", )
-        result = self.findData( keyPairs, conditions, -1 )
-        #now we know where the tender type is we parse the next list item to get the value        
-        conditions = ">","<"
-        result = self.findData( keyPairs, conditions, result[1] )
-        item['tenderType'] = result[0].strip()
         
-        #same process as above
+        conditions = ">","<"
+        item['tenderType'] = self.findKeyValue( u"ტენდერის ტიპი", keyPairs, conditions )
+        
         conditions = "strong",">","<"
         item['tenderRegistrationNumber']  = self.findKeyValue( u"სატენდერო განცხადების ნომერი", keyPairs, conditions )
 
@@ -530,7 +524,7 @@ class ProcurementSpider(BaseSpider):
                         break
         print "Starting scrape"
         url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
+        metadata = {"page": 1, "final_page": int(100), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         yield request
 
