@@ -10,6 +10,7 @@ import os
 import sys
 import httplib2
 import shutil
+from time import sleep
 
 class ProcurementSpider(BaseSpider):
     name = "procurement"
@@ -24,16 +25,15 @@ class ProcurementSpider(BaseSpider):
     agreementCount = 0
     docCount = 0
     failedRequests = []
-    performFullScrape = True
-    
+   
     def make_requests_from_url(self, url):
         return Request(url, cookies={"SPALITE":self.sessionCookie},headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
         
     def setSessionCookie(self,sessionCookie):
         self.sessionCookie = sessionCookie
         
-    def setFullScrapeMode(self,fullscrapeMode):
-        self.performFullScrape = fullscrapeMode
+    def setScrapeMode(self,scrapeMode):
+        self.scrapeMode = scrapeMode
         
     def setScrapePath(self, path):
         self.scrapePath = path
@@ -70,13 +70,8 @@ class ProcurementSpider(BaseSpider):
               
               #there seem to be 2 different types of agreement date types
               #one has a single Contract validity date and the other has a start and end date
-              validityIndex = winnerDiv.find(u"ხელშეკრულება ძალაშია",index)
-              if validityIndex > -1:
-                index = winnerDiv.find("date",validityIndex)
-                index = winnerDiv.find(">",index)
-                endIndex = winnerDiv.find("</",index)
-                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
-              else:
+              dateRange = winnerDiv.find("-",index)
+              if dateRange > -1:
                 index = winnerDiv.find(u"ძალაშია",index)
                 index = winnerDiv.find(":",index)
                 endIndex = winnerDiv.find("-",index)
@@ -85,6 +80,12 @@ class ProcurementSpider(BaseSpider):
                 index = endIndex
                 endIndex = winnerDiv.find("<",index)
                 item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+              else:
+                index = winnerDiv.find("date",validityIndex)
+                index = winnerDiv.find(">",index)
+                endIndex = winnerDiv.find("</",index)
+                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+
               
               #find the document download section
               index = winnerDiv.find('align="right',index)
@@ -112,7 +113,8 @@ class ProcurementSpider(BaseSpider):
                           item["AmendmentNumber"] = str(amendmentNumber)
                           item["OrgUrl"] = orgUrl
                           self.agreementCount = self.agreementCount + 1
-                          #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation                         
+                          #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation  
+                      
                           if amendmentHtml.find(u"დისკვალიფიკაცია") > -1:
                               #disqualified after an agreement was already signed
                               #need to revisit which values get set here
@@ -123,7 +125,7 @@ class ProcurementSpider(BaseSpider):
                               yield item
                           else:
                               index = amendmentHtml.find(u"ნომერი/თანხა")
-                              endIndex = amendmentHtml.find(u"ლარი",index)
+                              endIndex = amendmentHtml.find("<br",index)
                               index = amendmentHtml.rfind("/",index,endIndex)
                               item["Amount"] = amendmentHtml[index+1:endIndex].strip()
                               
@@ -459,7 +461,7 @@ class ProcurementSpider(BaseSpider):
             index = tenderOnClickItem.find("(",index)
             endIndex = tenderOnClickItem.find(",",index)
             index_url = tenderOnClickItem[index+1:endIndex]
-            if not self.performFullScrape:
+            if self.scrapeMode == "INCREMENTAL":
                 if index_url == response.meta['prevScrapeStartTender']:
                     incrementalFinished = True
                     break
@@ -480,6 +482,15 @@ class ProcurementSpider(BaseSpider):
             yield request
     
     def parse(self, response):
+      #if we are doing a single tender test scrape
+      if self.scrapeMode != "FULL" and self.scrapeMode != "INCREMENTAL":
+        url_id = self.scrapeMode
+        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+        self.firstTender = self.scrapeMode
+        request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies={"SPALITE":self.sessionCookie}, meta={"tenderUrl": url_id, "prevScrapeStartTender": self.firstTender},headers={"User-Agent":self.userAgent})
+        yield request
+                  
+      else:  
         #Find index of last page
         hxs = HtmlXPathSelector(response)
         totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
@@ -493,7 +504,7 @@ class ProcurementSpider(BaseSpider):
             return
         
         lastTenderURL = -1
-        if not self.performFullScrape:
+        if self.scrapeMode != "FULL":
             #find where the last scrape left off
             scrapeList = []
             currentDir = os.getcwd()
@@ -524,7 +535,7 @@ class ProcurementSpider(BaseSpider):
                         break
         print "Starting scrape"
         url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 1, "final_page": int(100), "prevScrapeStartTender": lastTenderURL}
+        metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         yield request
 
@@ -584,8 +595,11 @@ def main():
     spaLite = getSPACookie()
     # schedule spider
     procurementSpider = ProcurementSpider()
-    isFullScrape = len(sys.argv) > 1 and sys.argv[1] == "FULL"
-    procurementSpider.setFullScrapeMode(isFullScrape)
+    scrapeMode = "INCREMENTAL"
+    if len(sys.argv) > 1:
+      scrapeMode = sys.argv[1]
+
+    procurementSpider.setScrapeMode(scrapeMode)
     outputPath = sys.argv[2]
     procurementSpider.setSessionCookie(spaLite)
     crawler.crawl(procurementSpider)
@@ -607,9 +621,9 @@ def main():
     shutil.rmtree(outputPath)
     shutil.copytree(procurementSpider.scrapePath, outputPath)
     requestURL = "http://0.0.0.0:3000/"
-    if isFullScrape:
+    if scrapeMode == "FULL":
       requestURL=requestURL+"process_full_scrape"
-    else:
+    elif scrapeMode == "INCREMENTAL":
       requestURL=requestURL+"process_incremental_scrape"
     http = httplib2.Http()
     http.request(requestURL, 'GET')

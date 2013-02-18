@@ -15,14 +15,18 @@ class ProcurementscrapePipeline(object):
     def open_spider(self,spider):
         self.startTime = datetime.datetime.now()
         nowStr = self.startTime.strftime("%Y-%m-%d %H:%M")
-        if spider.performFullScrape:
+        if spider.scrapeMode == "FULL":
             if not os.path.exists("FullScrapes"):
                 os.makedirs("FullScrapes")
             typeDir = "FullScrapes/"
-        else:
+        elif spider.scrapeMode == "INCREMENTAL":
             if not os.path.exists("IncrementalScrapes"):
                 os.makedirs("IncrementalScrapes")
             typeDir = "IncrementalScrapes/"
+        else:
+            if not os.path.exists("TestScrapes"):
+                os.makedirs("TestScrapes")
+            typeDir = "TestScrapes/"
         scrapeDir = typeDir+nowStr
         if not os.path.exists(scrapeDir):
             os.makedirs(scrapeDir)
