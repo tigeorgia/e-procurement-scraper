@@ -618,8 +618,12 @@ def main():
     failFile.close()
 
     #now make a copy of our scraped files and place them in the website folder and tell the web server to process the data via a html request
-    shutil.rmtree(outputPath)
-    shutil.copytree(procurementSpider.scrapePath, outputPath)
+    currentPath = os.getcwd()
+    os.chdir(outputPath)
+    publicPath = "public/system"
+    shutil.rmtree(publicPath)
+    
+    shutil.copytree(procurementSpider.scrapePath, outputPath+publicPath)
     requestURL = "http://0.0.0.0:3000/"
     if scrapeMode == "FULL":
       requestURL=requestURL+"process_full_scrape"

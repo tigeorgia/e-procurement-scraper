@@ -1,2 +1,2 @@
 #!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py PARTIAL ../app/current/public/system
+  python procurementScrape/spiders/procurement_spider.py INCREMENTAL ../app/current/
