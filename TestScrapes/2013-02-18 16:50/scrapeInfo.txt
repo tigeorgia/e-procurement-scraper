@@ -1,0 +1,8 @@
+StartTime: 2013-02-18 16:50
+End Time: 2013-02-18 16:50
+Time Taken:    Days: 0    Minutes:    0    Seconds    0 
+Tenders scraped: 0 
+Orgs scraped: 0 
+bidders scraped: 0 
+agreements scraped: 0 
+documents scraped: 0 

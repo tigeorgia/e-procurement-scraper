@@ -617,20 +617,18 @@ def main():
         failFile.write("\n")
     failFile.close()
 
-    #now make a copy of our scraped files and place them in the website folder and tell the web server to process the data via a html request
+    #now make a copy of our scraped files and place them in the website folder and tell the web server to proc$
     currentPath = os.getcwd()
     os.chdir(outputPath)
-    publicPath = "public/system"
-    shutil.rmtree(publicPath)
+    publicPath = "/shared/system"
+
+    fullPath = os.getcwd()+publicPath
+    for f in os.listdir(os.getcwd()+publicPath):
+     os.remove(fullPath+"/"+f)
+    print os.getcwd()
+    os.rmdir(os.getcwd()+publicPath)
     os.chdir(currentPath)
     shutil.copytree(procurementSpider.scrapePath, outputPath+publicPath)
-    requestURL = "http://0.0.0.0:3000/"
-    if scrapeMode == "FULL":
-      requestURL=requestURL+"process_full_scrape"
-    elif scrapeMode == "INCREMENTAL":
-      requestURL=requestURL+"process_incremental_scrape"
-    http = httplib2.Http()
-    http.request(requestURL, 'GET')
     
 if __name__ == '__main__':
     main()
