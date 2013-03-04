@@ -23,7 +23,7 @@ class ProcurementscrapePipeline(object):
             if not os.path.exists("IncrementalScrapes"):
                 os.makedirs("IncrementalScrapes")
             typeDir = "IncrementalScrapes/"
-        else
+        else:
             if not os.path.exists("TestScrapes"):
                 os.makedirs("TestScrapes")
             typeDir = "TestScrapes/"
@@ -37,6 +37,7 @@ class ProcurementscrapePipeline(object):
         self.tenderBiddersFile = open(scrapeDir+"/"+'tenderBidders.json', 'wb')        
         self.tenderAgreementsFile = open(scrapeDir+"/"+'tenderAgreements.json', 'wb')      
         self.tenderDocumentationFile = open(scrapeDir+"/"+'tenderDocumentation.json', 'wb')
+        self.tenderCPVCodeFile = open(scrapeDir+"/"+'tenderCPVCode.json', 'wb')
 
         self.tenderExporter = JsonLinesItemExporter(self.tendersfile)
         self.tenderExporter.start_exporting()
@@ -48,6 +49,8 @@ class ProcurementscrapePipeline(object):
         self.agreementExporter.start_exporting()
         self.documentationExporter = JsonLinesItemExporter(self.tenderDocumentationFile)
         self.documentationExporter.start_exporting()
+        self.cpvCodeExporter = JsonLinesItemExporter(self.tenderCPVCodeFile)
+        self.cpvCodeExporter.start_exporting()
         
         self.infoFile = open(scrapeDir+"/"+'scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
@@ -63,25 +66,9 @@ class ProcurementscrapePipeline(object):
           self.agreementExporter.export_item(item)
         elif isinstance(item, TenderDocument):
           self.documentationExporter.export_item(item)
+        elif isinstance(item, CPVCode):
+          self.cpvCodeExporter.export_item(item)
         return item
-
-   #for key, value in item.iteritems():
-          #newVal = re.sub('"','/"',value)
-          #item[key] = newVal
-
-        #line = json.dumps(dict(item)) + ","
-        
-        #if isinstance(item, Tender):
-       #     self.tendersfile.write(line)
-       # elif isinstance(item, Organisation):
-        #    self.procuringEntitiesfile.write(line)
-       # elif isinstance(item, TenderBidder):
-       #     self.tenderBiddersFile.write(line)
-       # elif isinstance(item, TenderAgreement):
-       #     self.tenderAgreementsFile.write(line)
-       # elif isinstance(item, TenderDocument):
-       #     self.tenderDocumentationFile.write(line)
-       # return item
     
     def close_spider(self,spider):
         self.endTime = datetime.datetime.now()
@@ -112,5 +99,6 @@ class ProcurementscrapePipeline(object):
         self.tenderBiddersFile.close()
         self.tenderAgreementsFile.close()       
         self.tenderDocumentationFile.close()
+        self.tenderCPVCodeFile.close()
         
 

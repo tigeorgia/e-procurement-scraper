@@ -1,2 +1,4 @@
-#!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py FULL ../app/current/public/system
+#!/bin/bash
+python procurementScrape/spiders/procurement_spider.py FULL ../app/public/system
+cd ~/Projects/Procurement/app
+rake procurement:full_scrape

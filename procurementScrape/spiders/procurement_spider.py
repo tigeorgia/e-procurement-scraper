@@ -5,7 +5,7 @@
 from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode
 import os
 import sys
 import httplib2
@@ -408,8 +408,8 @@ class ProcurementSpider(BaseSpider):
         item['estimatedValue'] = val.replace("`","").replace("GEL","").strip()
 
         conditions = "/strong",">","<"
-        item['cpvCode'] =  self.findKeyValue( u"შესყიდვის კატეგორია", keyPairs, conditions ).strip() 
-        
+        item['cpvCode'] =  self.findKeyValue( u"შესყიდვის კატეგორია", keyPairs, conditions ).strip()
+      
         conditions = "blabla",">","</"
         item['info'] =  self.findKeyValue( u"დამატებითი ინფორმაცია", keyPairs, conditions )
         
@@ -419,33 +419,49 @@ class ProcurementSpider(BaseSpider):
         item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
         item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
         item['guaranteePeriod'] =  self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
+
+
+        #the sub cpv codes are within a list so we will deal with these seperately
+
+        #get all list items within a div tag
+        cpvItems = hxs.select('//div/ul/li').extract()
+        for cpvItem in cpvItems:
+          if cpvItem.find("padding:4px") > -1:
+            startIndex = cpvItem.find(">")
+            endIndex = cpvItem.find("-",startIndex)
+            cpvCode = cpvItem[startIndex+6:endIndex]
+            descriptionEnd = cpvItem.find("<div",endIndex)
+            description = cpvItem[endIndex+1:descriptionEnd]
+            cpvObject = CPVCode()
+            cpvObject['tenderID'] = item['tenderID']
+            cpvObject['cpvCode'] = cpvCode.strip()
+            cpvObject['description'] = description.strip()
+            yield cpvObject
     
         #now lets use the procuring entity id to find more info about the procurer
         print "parsing Tender: " + item['tenderID'] +" procurerURL: "+ item['procuringEntityUrl']
         url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['procuringEntityUrl']
         metaData = {'OrgUrl': item['procuringEntityUrl'],'type': "procuringOrg"}
         procurer_request = Request(url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie}, dont_filter=True, headers={"User-Agent":self.userAgent})
-        #yield procurer_request
+        yield procurer_request
         
         #now lets look at the tender documentation
         url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
         documentation_request = Request(url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         documentation_request.meta['tenderID'] = item['tenderID']
-        #yield documentation_request
+        yield documentation_request
         
         #now lets look at the bids made on this tender
         url = self.baseUrl+"lib/controller.php?action=app_bids&app_id="+item['tenderID']
         bids_request = Request(url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         bids_request.meta['tenderID'] = item['tenderID']
-        #yield bids_request
+        yield bids_request
         
         #finally lets look at the results of this tender
         url = self.baseUrl+"lib/controller.php?action=agency_docs&app_id="+item['tenderID']
         results_request = Request(url, errback=self.resultFailed,callback=self.parseResultsPage,cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         results_request.meta['tenderID'] = item['tenderID']
-        #yield results_request
-        
-        return procurer_request, results_request, bids_request, documentation_request, item
+        yield results_request
         
     def parseTenderUrls(self, response):
         hxs = HtmlXPathSelector(response)

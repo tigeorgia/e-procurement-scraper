@@ -24,6 +24,11 @@ class Tender(Item):
   offerStep = Field()
   guaranteeAmount = Field()
   guaranteePeriod = Field()
+
+class CPVCode(Item):
+  tenderID = Field()
+  cpvCode = Field()
+  description = Field()
     
     
 class Organisation(Item):
