@@ -268,7 +268,22 @@ class ProcurementSpider(BaseSpider):
             dataArray = rawData.split(".")
             url = self.baseUrl+"lib/files.php?mode=app&"
             item["documentUrl"] = url+"file="+dataArray[0]+"&code="+dataArray[1]
+
+            index = documentRow.find("obsolete0",index)
+            index = documentRow.find(">",index)
+            endIndex = documentRow.find("</",index)
+            item["title"] = documentRow[index+1:endIndex]
+            
+            index = documentRow.find("date",index)
+            index = documentRow.find(">",index)
+            endIndex = documentRow.find("<br",index)
+            item["date"] = documentRow[index+1:endIndex]
+            
+            index = documentRow.find(">",endIndex)
+            endIndex = documentRow.find("</td",index)
+            item["author"] = documentRow[index+1:endIndex]
             self.docCount = self.docCount + 1
+
             yield item
         
     
@@ -375,7 +390,8 @@ class ProcurementSpider(BaseSpider):
     def parseTender(self, response):
         self.tenderCount = self.tenderCount + 1
         hxs = HtmlXPathSelector(response)
-        keyPairs = hxs.select('//tr/td').extract()  
+        keyPairs = hxs.select('//tr/td').extract()
+        toYield = []
         item = Tender()
      
         item['tenderID'] = response.meta['tenderUrl']
@@ -419,12 +435,13 @@ class ProcurementSpider(BaseSpider):
         item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
         item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions )
         item['guaranteePeriod'] =  self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
-
+        toYield.append(item)
 
         #the sub cpv codes are within a list so we will deal with these seperately
 
         #get all list items within a div tag
         cpvItems = hxs.select('//div/ul/li').extract()
+
         for cpvItem in cpvItems:
           if cpvItem.find("padding:4px") > -1:
             startIndex = cpvItem.find(">")
@@ -436,32 +453,35 @@ class ProcurementSpider(BaseSpider):
             cpvObject['tenderID'] = item['tenderID']
             cpvObject['cpvCode'] = cpvCode.strip()
             cpvObject['description'] = description.strip()
-            yield cpvObject
+            toYield.append(cpvObject)
+            
     
         #now lets use the procuring entity id to find more info about the procurer
         print "parsing Tender: " + item['tenderID'] +" procurerURL: "+ item['procuringEntityUrl']
         url = self.baseUrl+"lib/controller.php?action=profile&org_id="+item['procuringEntityUrl']
         metaData = {'OrgUrl': item['procuringEntityUrl'],'type': "procuringOrg"}
-        procurer_request = Request(url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie}, dont_filter=True, headers={"User-Agent":self.userAgent})
-        yield procurer_request
-        
+        procurer_request = Request(url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
+        toYield.append(procurer_request)     
+
         #now lets look at the tender documentation
         url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
         documentation_request = Request(url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         documentation_request.meta['tenderID'] = item['tenderID']
-        yield documentation_request
+        toYield.append(documentation_request)   
         
         #now lets look at the bids made on this tender
         url = self.baseUrl+"lib/controller.php?action=app_bids&app_id="+item['tenderID']
         bids_request = Request(url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         bids_request.meta['tenderID'] = item['tenderID']
-        yield bids_request
+        toYield.append(bids_request)   
         
         #finally lets look at the results of this tender
         url = self.baseUrl+"lib/controller.php?action=agency_docs&app_id="+item['tenderID']
         results_request = Request(url, errback=self.resultFailed,callback=self.parseResultsPage,cookies={"SPALITE":self.sessionCookie}, headers={"User-Agent":self.userAgent})
         results_request.meta['tenderID'] = item['tenderID']
-        yield results_request
+        toYield.append(results_request)   
+  
+        return toYield
         
     def parseTenderUrls(self, response):
         hxs = HtmlXPathSelector(response)

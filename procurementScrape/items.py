@@ -65,3 +65,6 @@ class TenderAgreement(Item):
 class TenderDocument(Item):
   tenderID = Field()
   documentUrl = Field()
+  title = Field()
+  author = Field()
+  date = Field()
