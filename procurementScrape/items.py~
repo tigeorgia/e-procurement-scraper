@@ -66,5 +66,5 @@ class TenderDocument(Item):
   tenderID = Field()
   documentUrl = Field()
   title = Field()
-  name = Field()
+  author = Field()
   date = Field()

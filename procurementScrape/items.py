@@ -68,3 +68,22 @@ class TenderDocument(Item):
   title = Field()
   author = Field()
   date = Field()
+
+class WhiteListObject(Item):
+	orgID = Field()
+	orgName = Field()
+	issueDate = Field()
+	issuer = Field()
+	infor = Field()
+
+class BlackListObject(Item):
+	orgID = Field()
+	orgName = Field()
+	issueDate = Field()
+	procurer = Field()
+	tenderID = Field()
+	cpvCode = Field()
+	supplier = Field()
+	reason = Field()
+	
+
