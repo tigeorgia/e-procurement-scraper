@@ -1,2 +1,10 @@
-#!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py FULL ../app/public/system
+#!/usr/bin/env bash
+# load rvm ruby
+source /home/tigeorgia/.rvm/environments/ruby-1.9.2-p290
+
+cd /var/data/procurement/scraper
+python /var/data/procurement/scraper/procurementScrape/spiders/procurement_spider.py FULL /var/data/procurement/app 
+cd /var/data/procurement/app/current
+rake procurement:full_scrape
+
+

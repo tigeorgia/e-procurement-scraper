@@ -7,7 +7,7 @@ import datetime
 import os
 import re
 from scrapy.contrib.exporter import JsonLinesItemExporter
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, BlackListObject, WhiteListObject, Complaint
  
  
 class ProcurementscrapePipeline(object):
@@ -38,19 +38,29 @@ class ProcurementscrapePipeline(object):
         self.tenderAgreementsFile = open(scrapeDir+"/"+'tenderAgreements.json', 'wb')      
         self.tenderDocumentationFile = open(scrapeDir+"/"+'tenderDocumentation.json', 'wb')
         self.tenderCPVCodeFile = open(scrapeDir+"/"+'tenderCPVCode.json', 'wb')
+        self.whiteListFile = open(scrapeDir+"/"+'whiteList.json', 'wb')
+        self.blackListFile = open(scrapeDir+"/"+'blackList.json', 'wb')
+        self.complaintFile = open(scrapeDir+"/"+'complaints.json', 'wb')
 
         self.tenderExporter = JsonLinesItemExporter(self.tendersfile)
-        self.tenderExporter.start_exporting()
         self.procurerExporter = JsonLinesItemExporter(self.procuringEntitiesfile)
-        self.procurerExporter.start_exporting()
         self.biddersExporter = JsonLinesItemExporter(self.tenderBiddersFile)
-        self.biddersExporter.start_exporting()
         self.agreementExporter = JsonLinesItemExporter(self.tenderAgreementsFile)
-        self.agreementExporter.start_exporting()
         self.documentationExporter = JsonLinesItemExporter(self.tenderDocumentationFile)
-        self.documentationExporter.start_exporting()
         self.cpvCodeExporter = JsonLinesItemExporter(self.tenderCPVCodeFile)
+        self.whiteListExporter = JsonLinesItemExporter(self.whiteListFile)
+        self.blackListExporter = JsonLinesItemExporter(self.blackListFile)
+        self.complaintExporter = JsonLinesItemExporter(self.complaintFile)
+
+        self.tenderExporter.start_exporting()       
+        self.procurerExporter.start_exporting()      
+        self.biddersExporter.start_exporting()     
+        self.agreementExporter.start_exporting()
+        self.documentationExporter.start_exporting()        
         self.cpvCodeExporter.start_exporting()
+        self.whiteListExporter.start_exporting()
+        self.blackListExporter.start_exporting()
+        self.complaintExporter.start_exporting()
         
         self.infoFile = open(scrapeDir+"/"+'scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
@@ -68,6 +78,12 @@ class ProcurementscrapePipeline(object):
           self.documentationExporter.export_item(item)
         elif isinstance(item, CPVCode):
           self.cpvCodeExporter.export_item(item)
+        elif isinstance(item, WhiteListObject):
+          self.whiteListExporter.export_item(item)
+        elif isinstance(item, BlackListObject):
+          self.blackListExporter.export_item(item)
+        elif isinstance(item, Complaint):
+          self.complaintExporter.export_item(item)
         return item
     
     def close_spider(self,spider):
@@ -100,5 +116,7 @@ class ProcurementscrapePipeline(object):
         self.tenderAgreementsFile.close()       
         self.tenderDocumentationFile.close()
         self.tenderCPVCodeFile.close()
+        self.whiteListExporter.close()
+        self.blackListExporter.close()
         
 
