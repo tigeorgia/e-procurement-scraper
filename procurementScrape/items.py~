@@ -85,7 +85,7 @@ class BlackListObject(Item):
   tenderNum = Field()
   reason = Field()
 
-class ComplaintObject(Item):
+class Complaint(Item):
   status = Field()
   orgName = Field()
   orgID = Field()
