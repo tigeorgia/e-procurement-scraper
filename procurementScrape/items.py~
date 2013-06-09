@@ -89,6 +89,7 @@ class Complaint(Item):
   status = Field()
   orgName = Field()
   orgID = Field()
+  issueDate = Field()
   tenderID = Field()
   complaint = Field()
   legalBasis = Field()

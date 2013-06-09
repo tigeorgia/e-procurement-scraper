@@ -12,12 +12,14 @@ SPIDER_MODULES = ['procurementScrape.spiders']
 NEWSPIDER_MODULE = 'procurementScrape.spiders'
 COOKIES_DEBUG = True
 
-CONCURRENT_REQUESTS = 16
-CONCURRENT_REQUESTS_PER_DOMAIN = 8
+CONCURRENT_REQUESTS = 10
+DOWNLOAD_DELAY = 1
+DOWNLOADER_DEBUG = True
+
 RETRY_TIMES = 20
 
 ITEM_PIPELINES = [
-    'procurementScrape.pipelines.ProcurementscrapePipeline',
+    'procurementScrape.pipelines.ProcurementscrapePipeline'
 ]
 
 

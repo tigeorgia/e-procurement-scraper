@@ -5,7 +5,7 @@
 from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint, BidderResult
 import os
 import sys
 import httplib2
@@ -52,8 +52,8 @@ class ProcurementSpider(BaseSpider):
         
         #get results documents
         
-        if resultsDividers.__len__() >= 3:
-            winnerDiv = resultsDividers[2]
+        if resultsDividers.__len__() >= 2:
+            winnerDiv = resultsDividers[1]
             tenderID = response.meta['tenderID']
 
             #parse results section if there is one
@@ -105,8 +105,8 @@ class ProcurementSpider(BaseSpider):
               yield item
             
               #check for contract amendment
-              if resultsDividers.__len__() > 3:
-                  amendments = resultsDividers[3]
+              if resultsDividers.__len__() > 2:
+                  amendments = resultsDividers[2]
                   #just to be sure
                   if amendments.find(u"ხელშეკრულების ცვლილება") > -1:
                       #get all amendments
@@ -207,7 +207,21 @@ class ProcurementSpider(BaseSpider):
               item["documentUrl"] = "unknown"
               item["OrgUrl"] = "NULL"
               item["ExpiryDate"] = "NULL"
-              yield item   
+              yield item  
+
+        for divider in resultsDividers:
+          if divider.find(u"დისკვალიფიკაცია") > -1:
+            xpath = HtmlXPathSelector(text=divider)
+            bidResults = xpath.select('//tr').extract()
+            for row in bidResults:
+                fields = HtmlXPathSelector(text=row).select('//td').extract()
+                item = BidderResult()       
+                item["tenderID"] = tenderID
+                conditions = "strong",">","</"
+                item["OrgUrl"] = self.findData( fields, conditions, -1 )[0].strip()
+                conditions = "right",">","</"
+                item["result"] = self.findData( fields, conditions, -1 )[0].strip()
+                yield item
     
     def parseBidsPage(self,response):
         #print "parsing bids"
@@ -234,7 +248,7 @@ class ProcurementSpider(BaseSpider):
             endIndex = bidder.find("<",index)
             item["lastBidDate"] = bidder[index+1:endIndex].strip()
             
-            index = bidder.find("activebid1",index)
+            index = bidder.find("activebid",index)
             index = bidder.find(">",index)
             endIndex = bidder.find("<",index)
             item["firstBidAmount"] = bidder[index+1:endIndex-1].strip().replace("`","").strip()
@@ -276,17 +290,19 @@ class ProcurementSpider(BaseSpider):
             url = self.baseUrl+"lib/files.php?mode=app&"
             item["documentUrl"] = url+"file="+dataArray[0]+"&code="+dataArray[1]
 
-            index = documentRow.find("obsolete0",index)
+            index = documentRow.find("obsolete",index)
+            index = documentRow.find("<",index)
             index = documentRow.find(">",index)
+            
             endIndex = documentRow.find("</",index)
             item["title"] = documentRow[index+1:endIndex].strip()
             
-            index = documentRow.find("date",index)
+            index = documentRow.find("date",endIndex)
             index = documentRow.find(">",index)
-            endIndex = documentRow.find("<br",index)
+            endIndex = documentRow.find(":",index)
             item["date"] = documentRow[index+1:endIndex].strip()
             
-            index = documentRow.find(">",endIndex)
+            index = documentRow.find(":",endIndex)
             endIndex = documentRow.find("</td",index)
             item["author"] = documentRow[index+1:endIndex].strip()
             self.docCount = self.docCount + 1
@@ -763,12 +779,12 @@ class ProcurementSpider(BaseSpider):
       endIndex = demandDiv.find("</",startIndex)
       item["demand"] = demandDiv[startIndex+1:endIndex]
 
-      startIndex = response.find(u"სტატუსების ისტორია")
-      endIndex = response.find(u"საჩივარი შემოსულია", startIndex)
-      endIndex = response.rfind("</td",startIndex,endIndex)
-      startIndex = response.rfind("<td",startIndex,endIndex)
-      startIndex = response.find(">",startIndex,endIndex)
-      item["issueDate"] = response[startIndex+1:endIndex]
+      startIndex = lastClaimDiv.find(u"სტატუსების ისტორია")
+      endIndex = lastClaimDiv.find(u"საჩივარი შემოსულია", startIndex)
+      endIndex = lastClaimDiv.rfind("</td",startIndex,endIndex)
+      startIndex = lastClaimDiv.rfind("<td",startIndex,endIndex)
+      startIndex = lastClaimDiv.find(">",startIndex,endIndex)
+      item["issueDate"] = lastClaimDiv[startIndex+1:endIndex]
       
       yield item
 
@@ -788,83 +804,80 @@ class ProcurementSpider(BaseSpider):
 
     #spider start point
     def parse(self, response):
-      if False:
-        print "SHOULDNT BE IN HERE"
-        yield NULL
-        #if we are doing a single tender test scrape
-        if self.scrapeMode != "FULL" and self.scrapeMode != "INCREMENTAL":
-          url_id = self.scrapeMode
-          tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
-          self.firstTender = self.scrapeMode
-          request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id, "prevScrapeStartTender": self.firstTender},headers={"User-Agent":self.userAgent})
-          yield request
+      #if we are doing a single tender test scrape
+      if self.scrapeMode != "FULL" and self.scrapeMode != "INCREMENTAL":
+        url_id = self.scrapeMode
+        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+        self.firstTender = self.scrapeMode
+        request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id, "prevScrapeStartTender": self.firstTender},headers={"User-Agent":self.userAgent})
+        yield request
+                  
+      else:  
+        #Find index of last page
+        hxs = HtmlXPathSelector(response)
+        totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
+        
+        index = totalPagesButton.find('/')
+        endIndex = totalPagesButton.find(')',index)
+        final_page = totalPagesButton[index+1:endIndex]
+        
+        if( final_page == -1 ):
+            #print "Parsing Error... stopping"
+            return
+        
+        lastTenderURL = -1
+        if self.scrapeMode != "FULL":
+            #find where the last scrape left off
+            scrapeList = []
+            currentDir = os.getcwd()
+            if os.path.exists("FullScrapes"):
+                fullScrapes = os.listdir("FullScrapes")
+                
+            if os.path.exists("IncrementalScrapes"):
+                incrementalScrapes = os.listdir("IncrementalScrapes")
+            scrapeList = fullScrapes + incrementalScrapes
+            #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
+            scrapeList.sort()
+            while lastTenderURL == -1 and scrapeList.count > 0:
+                last = scrapeList.pop()
+                typeDir = "IncrementalScrapes"
+                if fullScrapes.__contains__(last):
+                    typeDir = "FullScrapes"
                     
-        else:  
-          #Find index of last page
-          hxs = HtmlXPathSelector(response)
-          totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
-          
-          index = totalPagesButton.find('/')
-          endIndex = totalPagesButton.find(')',index)
-          final_page = totalPagesButton[index+1:endIndex]
-          
-          if( final_page == -1 ):
-              #print "Parsing Error... stopping"
-              return
-          
-          lastTenderURL = -1
-          if self.scrapeMode != "FULL":
-              #find where the last scrape left off
-              scrapeList = []
-              currentDir = os.getcwd()
-              if os.path.exists("FullScrapes"):
-                  fullScrapes = os.listdir("FullScrapes")
-                  
-              if os.path.exists("IncrementalScrapes"):
-                  incrementalScrapes = os.listdir("IncrementalScrapes")
-              scrapeList = fullScrapes + incrementalScrapes
-              #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
-              scrapeList.sort()
-              while lastTenderURL == -1 and scrapeList.count > 0:
-                  last = scrapeList.pop()
-                  typeDir = "IncrementalScrapes"
-                  if fullScrapes.__contains__(last):
-                      typeDir = "FullScrapes"
-                      
-                  lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
-                  
-                  while 1:
-                      line = lastScrapeInfo.readline()
-                      if not line:
-                          break
-                      index = line.find("firstTenderURL")
-                      if index > -1:
-                          index = line.find(":")
-                          lastTenderURL = line[index+2:]
-                          break
-          print "Starting scrape"
-          url = self.mainPageBaseUrl+str(1)
-          metadata = {"page": 1, "final_page": int(final_page), "prevScrapeStartTender": lastTenderURL}
-          request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-          yield request
+                lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
+                
+                while 1:
+                    line = lastScrapeInfo.readline()
+                    if not line:
+                        break
+                    index = line.find("firstTenderURL")
+                    if index > -1:
+                        index = line.find(":")
+                        lastTenderURL = line[index+2:]
+                        break
+        print "Starting scrape"
+        url = self.mainPageBaseUrl+str(1)
+        metadata = {"page": 1000, "final_page": int(1300), "prevScrapeStartTender": lastTenderURL}
+        request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+        yield request
   
 
       metadata = {"page" : 1, "final_page" : -1}
       print "scraping white list"
       url = self.baseListUrl+self.whiteListUrl+str(1)
-      request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
+      #request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
       #yield request
               
       print "scraping black list"
       url = self.baseListUrl+self.blackListUrl+str(1)
-      request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      #request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
       #yield request
 
       print "scraping disputes"
       url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
-      print self.sessionCookies
-      request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      yield request
+      #print self.sessionCookies
+      #request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      #yield request
 
 
 #ERROR HANDLING SECTION#

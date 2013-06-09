@@ -52,6 +52,11 @@ class TenderBidder(Item):
   lastBidAmount = Field()
   lastBidDate = Field()
   numberOfBids = Field()
+
+class BidderResult(Item):
+  tenderID = Field()
+  OrgUrl = Field()
+  result = Field()
     
 class TenderAgreement(Item):
   tenderID = Field()
