@@ -460,7 +460,14 @@ class ProcurementSpider(BaseSpider):
         item['supplyPeriod'] =  self.findKeyValue( u"მოწოდების ვადა", keyPairs, conditions ).strip()
         item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
         item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
-        item['guaranteePeriod'] =  self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions ).strip()
+
+        item['guaranteePeriod'] =  .strip()
+        period = self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
+        if period is not None:
+          item['guaranteePeriod'] = period.strip()
+        else:
+          item['guaranteePeriod'] = "NO"
+          
         toYield.append(item)
 
         #the sub cpv codes are within a list so we will deal with these seperately
@@ -619,21 +626,16 @@ class ProcurementSpider(BaseSpider):
         startIndex = info.find(u"№")
         endIndex = info.find(";",startIndex)
         if startIndex == -1:
-          print response.url
-          print "SINDEX :" + str(startIndex)
-          print "EINDEX :" + str(endIndex)
         tenderNum = info[startIndex:endIndex]
       else:
         finished = False
         tenderID = ""
-        print info
         found = True
         while found:
           startIndex = info.find(tenderSearchStr,startIndex)
           if startIndex == -1:
             break
           endIndex = info.find("</a",startIndex)
-          print info[endIndex:endIndex+4]
           spaID = info[startIndex:endIndex].replace(u"შ","S")
           tenderID += spaID + ","
           startIndex = endIndex
@@ -663,11 +665,8 @@ class ProcurementSpider(BaseSpider):
         pageLinks = hxs.select('//div[@class="pager"]//a').extract()
         lastLink = pageLinks[-1]
         startIndex = lastLink.find("entrant")
-        print lastLink[startIndex:]
         startIndex = lastLink.find("=",startIndex)
-        print lastLink[startIndex:]
         endIndex = lastLink.find('&',startIndex)
-        print lastLink[startIndex+1:endIndex]
         final_page = int(lastLink[startIndex+1:endIndex])
    
       whiteListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
@@ -698,11 +697,8 @@ class ProcurementSpider(BaseSpider):
         pageLinks = hxs.select('//div[@class="pager"]//a').extract()
         lastLink = pageLinks[-1]
         startIndex = lastLink.find("entrant")
-        print lastLink[startIndex:]
         startIndex = lastLink.find("=",startIndex)
-        print lastLink[startIndex:]
         endIndex = lastLink.find('&',startIndex)
-        print lastLink[startIndex+1:endIndex]
         final_page = int(lastLink[startIndex+1:endIndex])
    
       blackListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
@@ -868,18 +864,18 @@ class ProcurementSpider(BaseSpider):
       metadata = {"page" : 1, "final_page" : -1}
       print "scraping white list"
       url = self.baseListUrl+self.whiteListUrl+str(1)
-      request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
-      yield request
+      #request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
+      #yield request
               
       print "scraping black list"
       url = self.baseListUrl+self.blackListUrl+str(1)
-      request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      yield request
+      #request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      #yield request
 
       print "scraping disputes"
       url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
-      request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      yield request
+      #request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      #yield request
 
 
 #ERROR HANDLING SECTION#
