@@ -461,7 +461,6 @@ class ProcurementSpider(BaseSpider):
         item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
         item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
 
-        item['guaranteePeriod'] =  .strip()
         period = self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
         if period is not None:
           item['guaranteePeriod'] = period.strip()

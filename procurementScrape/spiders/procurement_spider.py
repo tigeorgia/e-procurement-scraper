@@ -625,7 +625,7 @@ class ProcurementSpider(BaseSpider):
         startIndex = info.find(u"№")
         endIndex = info.find(";",startIndex)
         if startIndex == -1:
-        tenderNum = info[startIndex:endIndex]
+          tenderNum = info[startIndex:endIndex]
       else:
         finished = False
         tenderID = ""
