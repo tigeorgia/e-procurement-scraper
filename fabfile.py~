@@ -1,0 +1,12 @@
+from fabric.api import run, env
+from db_import import *
+
+env.hosts=['tigeorgia@tigeorgia.webfactional.com']
+
+def update_db(password):
+    env.password = password
+    dumpdb("","")
+    compressdb()
+    uploaddb()
+    importdb("","")
+    cleanup()

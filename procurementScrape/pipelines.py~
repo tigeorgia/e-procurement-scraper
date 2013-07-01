@@ -13,21 +13,27 @@ from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAg
 class ProcurementscrapePipeline(object):
 
     def open_spider(self,spider):
+
         self.startTime = datetime.datetime.now()
         nowStr = self.startTime.strftime("%Y-%m-%d %H:%M")
-        if spider.scrapeMode == "FULL":
-            if not os.path.exists("FullScrapes"):
-                os.makedirs("FullScrapes")
-            typeDir = "FullScrapes/"
-        elif spider.scrapeMode == "INCREMENTAL":
-            if not os.path.exists("IncrementalScrapes"):
-                os.makedirs("IncrementalScrapes")
-            typeDir = "IncrementalScrapes/"
+        scrapeDir = ""
+        if spider.scrapeMode == "FIXERRORS":
+          scrapeDir = spider.fixpath+"_FIX"+nowStr
         else:
-            if not os.path.exists("TestScrapes"):
-                os.makedirs("TestScrapes")
-            typeDir = "TestScrapes/"
-        scrapeDir = typeDir+nowStr
+          if spider.scrapeMode == "FULL":
+              if not os.path.exists("FullScrapes"):
+                  os.makedirs("FullScrapes")
+              typeDir = "FullScrapes/"
+          elif spider.scrapeMode == "INCREMENTAL":
+              if not os.path.exists("IncrementalScrapes"):
+                  os.makedirs("IncrementalScrapes")
+              typeDir = "IncrementalScrapes/"
+          else:
+              if not os.path.exists("TestScrapes"):
+                  os.makedirs("TestScrapes")
+              typeDir = "TestScrapes/"
+          scrapeDir = typeDir+nowStr
+         
         if not os.path.exists(scrapeDir):
             os.makedirs(scrapeDir)
         
@@ -52,7 +58,7 @@ class ProcurementscrapePipeline(object):
         self.whiteListExporter = JsonLinesItemExporter(self.whiteListFile)
         self.blackListExporter = JsonLinesItemExporter(self.blackListFile)
         self.complaintExporter = JsonLinesItemExporter(self.complaintFile)
-        self.bidderResultExporter = JsonLinesItemExporter(self.bidderResultExporter)
+        self.bidderResultExporter = JsonLinesItemExporter(self.bidderResultFile)
 
         self.tenderExporter.start_exporting()       
         self.procurerExporter.start_exporting()      
@@ -109,20 +115,24 @@ class ProcurementscrapePipeline(object):
         self.infoFile.write("firstTenderURL: %d" % int(spider.firstTender))
         self.infoFile.close()
         
-
         self.tenderExporter.finish_exporting()
         self.procurerExporter.finish_exporting()
         self.biddersExporter.finish_exporting()
         self.agreementExporter.finish_exporting()
         self.documentationExporter.finish_exporting()
+        self.whiteListExporter.finish_exporting()
+        self.blackListExporter.finish_exporting()
+        self.complaintExporter.finish_exporting()
+        self.bidderResultExporter.finish_exporting()
+
         self.tendersfile.close()
         self.procuringEntitiesfile.close()
         self.tenderBiddersFile.close()
         self.tenderAgreementsFile.close()       
         self.tenderDocumentationFile.close()
         self.tenderCPVCodeFile.close()
-        self.whiteListExporter.close()
-        self.blackListExporter.close()
-        self.bidderResultExporter.close()
-        
+        self.whiteListFile.close() 
+        self.blackListFile.close()
+        self.complaintFile.close()
+        self.bidderResultFile.close()
 

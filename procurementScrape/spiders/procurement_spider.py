@@ -106,126 +106,88 @@ class ProcurementSpider(BaseSpider):
             
               #check for contract amendment
               if resultsDividers.__len__() > 2:
-                  amendments = resultsDividers[2]
-                  #just to be sure
-                  if amendments.find(u"ხელშეკრულების ცვლილება") > -1:
-                      #get all amendments
-                      xAmendmentsTable = resultsDividersXPath[3]
-                      xAmendments = xAmendmentsTable.select('.//tr')
-                      for amendment in xAmendments:
-                          amendmentHtml = amendment.extract()
-                          item = TenderAgreement()
-                          item["tenderID"] = tenderID
-                          amendmentNumber = amendmentNumber + 1
-                          item["AmendmentNumber"] = str(amendmentNumber)
-                          item["OrgUrl"] = orgUrl
-                          self.agreementCount = self.agreementCount + 1
-                          #need to cover cases of "bidder refused the bid" and contract amendments with no updated documentation  
+                count = 0
+                for divider in resultsDividers:
+                  if count < 2:
+                    count = count + 1
+                    continue
+                  xAmendmentsTable = resultsDividersXPath[count]
+                  xAmendments = xAmendmentsTable.select('.//tr')               
+                  item = TenderAgreement()
+                  item["tenderID"] = tenderID
+                  #agreement change
+                  if divider.find(u"ხელშეკრულების ცვლილება") > -1 or divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1: 
+                    #extract all rows
+                    for row in xAmendments:
+                      amendmentHtml = row.extract()                
+                      amendmentNumber = amendmentNumber + 1
+                      item["AmendmentNumber"] = str(amendmentNumber)
+                      #should be the same org as the original contract
+                      item["OrgUrl"] = orgUrl
+                      self.agreementCount = self.agreementCount + 1
+                      index = amendmentHtml.find(u"ნომერი/თანხა")
+                      endIndex = amendmentHtml.find("<br",index)
+                      index = amendmentHtml.rfind("/",index,endIndex)
+                      item["Amount"] = amendmentHtml[index+1:endIndex].strip()
                       
-                          if amendmentHtml.find(u"დისკვალიფიკაცია") > -1:
-                              #disqualified after an agreement was already signed
-                              #need to revisit which values get set here
-                              item["Amount"] = "NULL"                                 
-                              item["StartDate"] = "NULL"                                 
-                              item["ExpiryDate"] = "NULL"
-                              item["documentUrl"] = "disqualified"
-                              yield item
-                          else:
-                              index = amendmentHtml.find(u"ნომერი/თანხა")
-                              endIndex = amendmentHtml.find("<br",index)
-                              index = amendmentHtml.rfind("/",index,endIndex)
-                              item["Amount"] = amendmentHtml[index+1:endIndex].strip()
-                              
-                              index = amendmentHtml.find(u"ძალაშია",index)
-                              index = amendmentHtml.find(":",index)
-                              endIndex = amendmentHtml.find("-",index)
-                              item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-                              
-                              index = endIndex
-                              endIndex = amendmentHtml.find("<",index)
-                              item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
-                              
-                              #find the document download section
-                              if amendmentHtml.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
-                                  item["documentUrl"] = "Treaty Correction: No Document"
-                              else:  
-                                  index = amendmentHtml.find('align="right',index)
-                                  index = amendmentHtml.find("href",index)
-                                  index = amendmentHtml.find('"',index)+1
-                                  endIndex = amendmentHtml.find('"',index)
-                                  item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
-                              yield item
-            #the contract has been refused list all refusals            
-            elif winnerDiv.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:
-                  amendmentNumber = 0
-                  xpath = HtmlXPathSelector(text=winnerDiv)
-                  biddersRows = xpath.select('//tr').extract()
-                  for row in biddersRows:
-                    fields = HtmlXPathSelector(text=row).select('//td').extract()
+                      index = amendmentHtml.find(u"ძალაშია",index)
+                      index = amendmentHtml.find(":",index)
+                      endIndex = amendmentHtml.find("-",index)
+                      item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+                      
+                      index = endIndex
+                      endIndex = amendmentHtml.find("<",index)
+                      item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                                         
+                      #error correction
+                      if divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
+                        item["documentUrl"] = "Treaty Correction: No Document"
+                      else:
+                        index = amendmentHtml.find('align="right',index)
+                        index = amendmentHtml.find("href",index)
+                        index = amendmentHtml.find('"',index)+1
+                        endIndex = amendmentHtml.find('"',index)
+                        item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
+                      yield item
+                  
+                  #disqualify (might be another company so the contract is still valid)
+                  elif divider.find(u"დისკვალიფიკაცია") > -1 or divider.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:        
+                    #extract all rows
+                    for row in xAmendments:
+                      amendmentHtml = row.extract()                    
+                      index = amendmentHtml.find("width")
+                      index = amendmentHtml.find(">",index)
+                      endIndex = amendmentHtml.find("</",index) 
+                      item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+
+                      index = amendmentHtml.find("strong",index)
+                      index = amendmentHtml.find(">",index)
+                      endIndex = amendmentHtml.find("</",index)
+                      item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
+                   
+                      item["Amount"] = "NULL"
+                      item["StartDate"] = "NULL"                                 
+                      item["ExpiryDate"] = "NULL"
+                   
+                      if divider.find(u"დისკვალიფიკაცია") > -1:
+                        item["documentUrl"] = "disqualified"
+                      else:
+                        item["documentUrl"] = "bidder refused agreement"
+                      
+                      yield item
+                  #unknown stuff
+                  else:
                     item = TenderAgreement()
                     item["tenderID"] = tenderID
-                    item["AmendmentNumber"] = str(amendmentNumber)
-                    item["Amount"] = "-1"      
-
-                    conditions = "width",">","</"                          
-                    item["StartDate"] = self.findData( fields, conditions, -1 )[0].strip()                            
-                    item["documentUrl"] = "bidder refused agreement"
-                    conditions = "strong",">","</"
-                    item["OrgUrl"] = self.findData( fields, conditions, -1 )[0].strip()
+                    item["AmendmentNumber"] = str(0)
+                    item["Amount"] = "-1"                             
+                    item["StartDate"] = "NULL"                            
+                    item["documentUrl"] = "unknown"
+                    item["OrgUrl"] = "NULL"
                     item["ExpiryDate"] = "NULL"
-                    amendmentNumber = amendmentNumber + 1
                     yield item
-            #check for disqualifications
-            elif winnerDiv.find(u"დისკვალიფიკაცია") > -1:
-              amendmentNumber = 0
-              xpath = HtmlXPathSelector(text=winnerDiv)
-              biddersRows = xpath.select('//tr').extract()
-              for row in biddersRows:
-                fields = HtmlXPathSelector(text=row).select('//td').extract()
-                item = TenderAgreement()
-                item["tenderID"] = tenderID
-                item["AmendmentNumber"] = str(amendmentNumber)
-                  
-                conditions = "width",">","</"                          
-                item["StartDate"] = self.findData( fields, conditions, -1 )[0].strip()                           
-                item["documentUrl"] = "disqualifed"
-                conditions = "strong",">","</"
-                item["OrgUrl"] = self.findData( fields, conditions, -1 )[0].strip()
-                conditions = "right",">","</td"
-                item["Amount"] =  "-1"
-                item["ExpiryDate"] = "NULL"
-                amendmentNumber = amendmentNumber + 1
-                yield item
-
-            #unknown stuff
-            else:
-              item = TenderAgreement()
-              item["tenderID"] = tenderID
-              item["AmendmentNumber"] = str(0)
-              item["Amount"] = "-1"                             
-              item["StartDate"] = "NULL"                            
-              item["documentUrl"] = "unknown"
-              item["OrgUrl"] = "NULL"
-              item["ExpiryDate"] = "NULL"
-              yield item  
-
-
-        #drop first div since it is for documents and some documents might be named diqualified
-        resultsDividers.pop(0)
-        for divider in resultsDividers:
-          if divider.find(u"დისკვალიფიკაცია") > -1:
-            xpath = HtmlXPathSelector(text=divider)
-            bidResults = xpath.select('//tr').extract()
-            for row in bidResults:
-                fields = HtmlXPathSelector(text=row).select('//td').extract()
-                item = BidderResult()       
-                item["tenderID"] = tenderID
-                conditions = "strong",">","</"
-                item["OrgUrl"] = self.findData( fields, conditions, -1 )[0].strip()
-                conditions = "right",">","</"
-                item["result"] = self.findData( fields, conditions, -1 )[0].strip()
-                yield item
-    
+                  count = count + 1
+               
     def parseBidsPage(self,response):
         #print "parsing bids"
         hxs = HtmlXPathSelector(response)
@@ -800,10 +762,117 @@ class ProcurementSpider(BaseSpider):
         request = Request(url,callback=self.parseDispute, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         yield request
 
+
+    def parseDisputeLists(self):
+      metadata = {"page" : 1, "final_page" : -1}
+      print "scraping white list"
+      url = self.baseListUrl+self.whiteListUrl+str(1)
+      request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
+      yield request
+              
+      print "scraping black list"
+      url = self.baseListUrl+self.blackListUrl+str(1)
+      request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      yield request
+
+      print "scraping disputes"
+      url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
+      request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+      yield request
+
+    def getLastScrapedTender(self):
+      #find where the last scrape left off
+      scrapeList = []
+      currentDir = os.getcwd()
+      if os.path.exists("FullScrapes"):
+          fullScrapes = os.listdir("FullScrapes")
+          
+      if os.path.exists("IncrementalScrapes"):
+          incrementalScrapes = os.listdir("IncrementalScrapes")
+      scrapeList = fullScrapes + incrementalScrapes
+      #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
+      scrapeList.sort()
+      lastTenderURL = -1
+      while lastTenderURL == -1 and scrapeList.count > 0:
+          last = scrapeList.pop()
+          typeDir = "IncrementalScrapes"
+          if fullScrapes.__contains__(last):
+              typeDir = "FullScrapes"
+              
+          lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
+          
+          while 1:
+              line = lastScrapeInfo.readline()
+              if not line:
+                  break
+              index = line.find("firstTenderURL")
+              if index > -1:
+                  index = line.find(":")
+                  lastTenderURL = line[index+2:]
+                  break
+      return lastTenderURL   
+
+
+
+
     #spider start point
     def parse(self, response):
+      #if we are fixing errors from a previous scrape
+      if self.scrapeMode == "FIXERRORS":
+        self.firstTender = -1
+        tender_url = "action=app_main&app_id="
+        org_url = "action=profile&org_id="
+        bidder_url = "action=app_bids&app_id="
+        agreement_url = "action=agency_docs&app_id="
+        document_url = "action=app_docs&app_id=" 
+
+        failPath = self.fixpath+"/failures.txt"
+        failFile = open(failPath, 'r')
+        for item_url in failFile:
+          if item_url.find(tender_url) > -1:
+            index = item_url.find("app_id")
+            index = item_url.find("=",index)  
+            index_url = item_url[index+1:]
+            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": index_url, "prevScrapeStartTender": -1},headers={"User-Agent":self.userAgent})
+            print "tender: "+item_url
+            yield request
+          elif item_url.find(org_url) > -1:
+            index = item_url.find("org_id")
+            index = item_url.find("=",index)
+            org_url = item_url[index+1:]
+            metaData = {'OrgUrl': org_url,'type': "procuringOrg"}
+            request = Request(item_url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            print "org: "+org_url
+            yield request
+          elif item_url.find(bidder_url) > -1:
+            index = item_url.find("app_id")
+            index = item_url.find("=",index)
+            tender_id = item_url[index+1:]
+            request = Request(item_url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            request.meta['tenderID'] = tender_id
+            print "bid: "+tender_id
+            yield request
+          elif item_url.find(agreement_url) > -1:
+            index = item_url.find("app_id")
+            index = item_url.find("=",index)
+            tender_id = item_url[index+1:]
+            request = Request(item_url, errback=self.resultFailed,callback=self.parseResultsPage,cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            request.meta['tenderID'] = tender_id
+            print "agree: "+tender_id
+            yield request
+          elif item_url.find(document_url) > -1:
+            index = item_url.find("app_id")
+            index = item_url.find("=",index)
+            tender_id = item_url[index+1:]
+            documentation_request = Request(item_url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            documentation_request.meta['tenderID'] = tender_id
+            print "doc: "+tender_id
+            yield request 
+        failFile.close()
+          
+        
       #if we are doing a single tender test scrape
-      if self.scrapeMode != "FULL" and self.scrapeMode != "INCREMENTAL":
+      elif self.scrapeMode == "SINGLE":
         url_id = self.scrapeMode
         tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
         self.firstTender = self.scrapeMode
@@ -824,57 +893,15 @@ class ProcurementSpider(BaseSpider):
             return
         
         lastTenderURL = -1
-        if self.scrapeMode != "FULL":
-            #find where the last scrape left off
-            scrapeList = []
-            currentDir = os.getcwd()
-            if os.path.exists("FullScrapes"):
-                fullScrapes = os.listdir("FullScrapes")
-                
-            if os.path.exists("IncrementalScrapes"):
-                incrementalScrapes = os.listdir("IncrementalScrapes")
-            scrapeList = fullScrapes + incrementalScrapes
-            #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
-            scrapeList.sort()
-            while lastTenderURL == -1 and scrapeList.count > 0:
-                last = scrapeList.pop()
-                typeDir = "IncrementalScrapes"
-                if fullScrapes.__contains__(last):
-                    typeDir = "FullScrapes"
-                    
-                lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
-                
-                while 1:
-                    line = lastScrapeInfo.readline()
-                    if not line:
-                        break
-                    index = line.find("firstTenderURL")
-                    if index > -1:
-                        index = line.find(":")
-                        lastTenderURL = line[index+2:]
-                        break
+        if self.scrapeMode == "INCREMENTAL":
+          lastTenderURL = self.getLastScrapedTender()
+
         print "Starting scrape"
-        url = self.mainPageBaseUrl+str(1)
-        metadata = {"page": 1000, "final_page": int(1300), "prevScrapeStartTender": lastTenderURL}
+        startPage = 1000
+        url = self.mainPageBaseUrl+str(startPage)
+        metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         yield request
-  
-
-      metadata = {"page" : 1, "final_page" : -1}
-      print "scraping white list"
-      url = self.baseListUrl+self.whiteListUrl+str(1)
-      #request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
-      #yield request
-              
-      print "scraping black list"
-      url = self.baseListUrl+self.blackListUrl+str(1)
-      #request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      #yield request
-
-      print "scraping disputes"
-      url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
-      #request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      #yield request
 
 
 #ERROR HANDLING SECTION#
@@ -955,6 +982,9 @@ def main():
     procurementSpider.setScrapeMode(scrapeMode)
     outputPath = sys.argv[2]
     procurementSpider.setSessionCookies(cookies)
+
+    if procurementSpider.scrapeMode == "FIXERRORS":
+      procurementSpider.fixpath = sys.argv[3]
     crawler.crawl(procurementSpider)
 
     #start engine scrapy/twisted
