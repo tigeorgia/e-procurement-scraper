@@ -897,7 +897,7 @@ class ProcurementSpider(BaseSpider):
           lastTenderURL = self.getLastScrapedTender()
 
         print "Starting scrape"
-        startPage = 1000
+        startPage = 1
         url = self.mainPageBaseUrl+str(startPage)
         metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})

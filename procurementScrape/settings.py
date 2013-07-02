@@ -17,6 +17,9 @@ DOWNLOAD_DELAY = 1
 DOWNLOADER_DEBUG = True
 
 RETRY_TIMES = 20
+DEPTH_PRIORITY = 1
+SCHEDULER_DISK_QUEUE = 'scrapy.squeue.PickleFifoDiskQueue'
+SCHEDULER_MEMORY_QUEUE = 'scrapy.squeue.FifoMemoryQueue'
 
 ITEM_PIPELINES = [
     'procurementScrape.pipelines.ProcurementscrapePipeline'

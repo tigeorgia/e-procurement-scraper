@@ -162,7 +162,7 @@ class ProcurementSpider(BaseSpider):
 
                       index = amendmentHtml.find("strong",index)
                       index = amendmentHtml.find(">",index)
-                      endIndex = amendmentHtml.dins("</",index)
+                      endIndex = amendmentHtml.find("</",index)
                       item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
                    
                       item["Amount"] = "NULL"
