@@ -3,7 +3,7 @@ SCRAPER=scraper/
 LOCKFILE=running.txt
 SPIDER=procurementScrape/spiders/procurement_spider.py
 OUTPUT=app/current
-FIXPATH="FullScrapes/2013-06-11 23:41"
+FIXPATH="IncrementalScrapes/2013-07-02 16:07"
 FIXFILE="_FIX"
 
 BIDRESULTFILE="/bidderResult.json"

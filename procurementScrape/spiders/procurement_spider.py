@@ -812,9 +812,6 @@ class ProcurementSpider(BaseSpider):
                   break
       return lastTenderURL   
 
-
-
-
     #spider start point
     def parse(self, response):
       #if we are fixing errors from a previous scrape

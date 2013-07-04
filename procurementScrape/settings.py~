@@ -18,6 +18,7 @@ DOWNLOADER_DEBUG = True
 
 RETRY_TIMES = 20
 
+
 ITEM_PIPELINES = [
     'procurementScrape.pipelines.ProcurementscrapePipeline'
 ]

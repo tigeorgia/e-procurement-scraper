@@ -1,2 +1,22 @@
-#!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py INCREMENTAL ../app/current/
+#!/usr/bin/env bash
+# load rvm ruby
+
+PROJECT=~/Projects/Procurement/
+SCRAPER=scraper/
+LOCKFILE=running.txt
+SPIDER=procurementScrape/spiders/procurement_spider.py
+OUTPUT=app/current
+FABFUNC=update_db
+
+source /home/tigeorgia/.rvm/environments/ruby-1.9.2-p290
+
+cd $PROJECT$SCRAPER
+if [ ! -f $PROJECT$SCRAPER$LOCKFILE ]; then
+        touch $PROJECT$SCRAPER$LOCKFILE
+        #python $PROJECT$SCRAPER$SPIDER INCREMENTAL $PROJECT$OUTPUT
+        #cd $PROJECT$OUTPUT
+        #rake procurement:incremental_scrape
+        #cd $PROJECT$SCRAPER
+	    fab $FABFUNC
+	rm $PROJECT$SCRAPER$LOCKFILE
+fi
