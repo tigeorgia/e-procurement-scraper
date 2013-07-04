@@ -998,7 +998,7 @@ def main():
     #now make a copy of our scraped files and place them in the website folder and tell the web server to proc$
     currentPath = os.getcwd()
     os.chdir(outputPath)
-    publicPath = "/shared/system"
+    publicPath = "/public/system"
 
     fullPath = os.getcwd()+publicPath
     for f in os.listdir(os.getcwd()+publicPath):
