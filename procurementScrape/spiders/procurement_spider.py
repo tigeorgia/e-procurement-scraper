@@ -830,7 +830,7 @@ class ProcurementSpider(BaseSpider):
             index = item_url.find("app_id")
             index = item_url.find("=",index)  
             index_url = item_url[index+1:]
-            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": index_url, "prevScrapeStartTender": -1},headers={"User-Agent":self.userAgent})
+            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": index_url},headers={"User-Agent":self.userAgent})
             print "tender: "+item_url
             yield request
           elif item_url.find(org_url) > -1:
@@ -871,9 +871,9 @@ class ProcurementSpider(BaseSpider):
       #if we are doing a single tender test scrape
       elif self.scrapeMode == "SINGLE":
         url_id = self.scrapeMode
-        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+        tender_url = 
         self.firstTender = self.scrapeMode
-        request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id, "prevScrapeStartTender": self.firstTender},headers={"User-Agent":self.userAgent})
+        request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
         yield request
                   
       else:  
@@ -899,7 +899,15 @@ class ProcurementSpider(BaseSpider):
         metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         yield request
-
+      
+        #now that we have queued up the scrape to find new tenders lets go through our inProgress list and scrape for updates
+        if self.scrapeMode == "INCREMENTAL":
+          updatesFile = open(self.tenderUpdatesFile, 'r')
+          for url_id in updatesFile:
+            item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
+            print "update tender: "+item_url
+            yield request
 
 #ERROR HANDLING SECTION#
     def urlPageFailed(self,error):
@@ -977,7 +985,11 @@ def main():
       scrapeMode = sys.argv[1]
 
     procurementSpider.setScrapeMode(scrapeMode)
-    outputPath = sys.argv[2]
+    appPath = sys.argv[2]
+    publicPath = "/shared/system"
+    outputPath = appPath+publicPath
+    procurementSpider.tenderUpdatesFile = outputPath+"/liveTenders.txt"  
+    
     procurementSpider.setSessionCookies(cookies)
 
     if procurementSpider.scrapeMode == "FIXERRORS":
@@ -997,8 +1009,7 @@ def main():
 
     #now make a copy of our scraped files and place them in the website folder and tell the web server to proc$
     currentPath = os.getcwd()
-    os.chdir(outputPath)
-    publicPath = "/public/system"
+    os.chdir(appPath)
 
     fullPath = os.getcwd()+publicPath
     for f in os.listdir(os.getcwd()+publicPath):
@@ -1006,7 +1017,7 @@ def main():
     print os.getcwd()
     os.rmdir(os.getcwd()+publicPath)
     os.chdir(currentPath)
-    shutil.copytree(procurementSpider.scrapePath, outputPath+publicPath)
+    shutil.copytree(procurementSpider.scrapePath, outputPath)
     
 if __name__ == '__main__':
     main()
