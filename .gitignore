@@ -2,5 +2,5 @@
 /IncrementalScrapes/*
 /TestScrapes/*
 db_import.py
-incremental_scrape
-full_scrape
+./incremental_scrape
+./full_scrape
