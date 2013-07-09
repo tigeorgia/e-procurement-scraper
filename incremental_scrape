@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # load rvm ruby
 
-PROJECT=/var/data/procurement
+PROJECT=/var/data/procurement/
 SCRAPER=scraper/
 LOCKFILE=running.txt
 SPIDER=procurementScrape/spiders/procurement_spider.py
-OUTPUT=app
+OUTPUT=app/
 CURRENT=current/
 FABFUNC=update_db
 

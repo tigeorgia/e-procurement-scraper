@@ -871,7 +871,7 @@ class ProcurementSpider(BaseSpider):
       #if we are doing a single tender test scrape
       elif self.scrapeMode == "SINGLE":
         url_id = self.scrapeMode
-        tender_url = 
+        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
         self.firstTender = self.scrapeMode
         request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
         yield request
