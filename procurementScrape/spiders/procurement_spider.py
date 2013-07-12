@@ -986,7 +986,7 @@ def main():
 
     procurementSpider.setScrapeMode(scrapeMode)
     appPath = sys.argv[2]
-    publicPath = "/shared/system"
+    publicPath = "shared/system"
     outputPath = appPath+publicPath
     procurementSpider.tenderUpdatesFile = outputPath+"/liveTenders.txt"  
     

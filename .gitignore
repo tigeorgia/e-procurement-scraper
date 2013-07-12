@@ -1,6 +1,7 @@
 /FullScrapes/*
 /IncrementalScrapes/*
 /TestScrapes/*
-db_import.py
+./db_import.py
+./fabfile.py
 ./incremental_scrape
 ./full_scrape
