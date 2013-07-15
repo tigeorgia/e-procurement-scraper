@@ -871,7 +871,7 @@ class ProcurementSpider(BaseSpider):
       #if we are doing a single tender test scrape
       elif self.scrapeMode == "SINGLE":
         url_id = self.scrapeMode
-        tender_url = 
+        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
         self.firstTender = self.scrapeMode
         request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
         yield request
@@ -986,7 +986,7 @@ def main():
 
     procurementSpider.setScrapeMode(scrapeMode)
     appPath = sys.argv[2]
-    publicPath = "/shared/system"
+    publicPath = "shared/system"
     outputPath = appPath+publicPath
     procurementSpider.tenderUpdatesFile = outputPath+"/liveTenders.txt"  
     
@@ -1011,12 +1011,16 @@ def main():
     currentPath = os.getcwd()
     os.chdir(appPath)
 
-    fullPath = os.getcwd()+publicPath
-    for f in os.listdir(os.getcwd()+publicPath):
+    fullPath = os.getcwd()+"/"+publicPath
+    print "FULL PATH: "+fullPath
+    for f in os.listdir(os.getcwd()+"/"+publicPath):
+     print "remove: "+fullPath+"/"+f
      os.remove(fullPath+"/"+f)
     print os.getcwd()
     os.rmdir(os.getcwd()+publicPath)
     os.chdir(currentPath)
+    print "coping from: "+procurementSpider.scrapePath
+    print "to: "+outputPath
     shutil.copytree(procurementSpider.scrapePath, outputPath)
     
 if __name__ == '__main__':

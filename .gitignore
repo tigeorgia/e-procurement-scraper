@@ -2,5 +2,16 @@
 /IncrementalScrapes/*
 /TestScrapes/*
 db_import.py
-./incremental_scrape
-./full_scrape
+fabfile.py
+incremental_scrape
+full_scrape
+DDOS.txt
+allout.txt
+cronLog.txt
+cronTest
+abfile.pyc
+full_scrape.save
+fied:   procurementScrape/spiders/procurement_spider.pyc
+procurementScrape/spiders/test_spider.py.save
+test_bash
+*.sql
