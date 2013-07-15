@@ -11,7 +11,6 @@ cronLog.txt
 cronTest
 abfile.pyc
 full_scrape.save
-fied:   procurementScrape/spiders/procurement_spider.pyc
 procurementScrape/spiders/test_spider.py.save
 test_bash
 *.sql
