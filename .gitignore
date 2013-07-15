@@ -9,7 +9,7 @@ DDOS.txt
 allout.txt
 cronLog.txt
 cronTest
-abfile.pyc
+fabfile.pyc
 full_scrape.save
 procurementScrape/spiders/test_spider.py.save
 test_bash
