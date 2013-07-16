@@ -3,7 +3,7 @@
 
 PROJECT=/var/data/procurement/
 SCRAPER=scraper/
-LOCKFILE=running.txt
+LOCKFILE=running2.txt
 SPIDER=procurementScrape/spiders/procurement_spider.py
 OUTPUT=app/
 CURRENT=current/
@@ -14,7 +14,7 @@ source /home/tigeorgia/.rvm/environments/ruby-1.9.2-p290
 cd $PROJECT$SCRAPER
 if [ ! -f $PROJECT$SCRAPER$LOCKFILE ]; then
   touch $PROJECT$SCRAPER$LOCKFILE
-  python $PROJECT$SCRAPER$SPIDER INCREMENTAL $PROJECT$OUTPUT
+  #python $PROJECT$SCRAPER$SPIDER INCREMENTAL $PROJECT$OUTPUT
   cd $PROJECT$OUTPUT$CURRENT
   rake procurement:full_scrape
   cd $PROJECT$SCRAPER

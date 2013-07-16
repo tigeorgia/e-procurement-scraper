@@ -904,7 +904,7 @@ class ProcurementSpider(BaseSpider):
         if self.scrapeMode == "INCREMENTAL":
           updatesFile = open(self.tenderUpdatesFile, 'r')
           for url_id in updatesFile:
-            item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+            item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id.replace("\n","")
             request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
             print "update tender: "+item_url
             yield request
@@ -1017,7 +1017,7 @@ def main():
      print "remove: "+fullPath+"/"+f
      os.remove(fullPath+"/"+f)
     print os.getcwd()
-    os.rmdir(os.getcwd()+publicPath)
+    os.rmdir(os.getcwd()+"/"+publicPath)
     os.chdir(currentPath)
     print "coping from: "+procurementSpider.scrapePath
     print "to: "+outputPath
