@@ -1,0 +1,1055 @@
+[tigeorgia@95.211.171.65] Executing task 'pre_scrape_process'
+[tigeorgia@95.211.171.65] run: rake procurement:pre_store_search_results
+
+Done.
+Disconnecting from 95.211.171.65... done.
+Spider error processing <GET https://tenders.procurement.gov.ge/public/lib/controller.php?action=search_app&page=0>
+Traceback (most recent call last):
+  File "/usr/local/lib/python2.7/dist-packages/twisted/internet/base.py", line 800, in runUntilCurrent
+    call.func(*call.args, **call.kw)
+  File "/usr/local/lib/python2.7/dist-packages/twisted/internet/task.py", line 602, in _tick
+    taskObj._oneWorkUnit()
+  File "/usr/local/lib/python2.7/dist-packages/twisted/internet/task.py", line 479, in _oneWorkUnit
+    result = self._iterator.next()
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/utils/defer.py", line 57, in <genexpr>
+    work = (callable(elem, *args, **named) for elem in iterable)
+--- <exception caught here> ---
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/utils/defer.py", line 96, in iter_errback
+    yield it.next()
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/contrib/spidermiddleware/offsite.py", line 24, in process_spider_output
+    for x in result:
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/contrib/spidermiddleware/referer.py", line 14, in <genexpr>
+    return (_set_referer(r) for r in result or ())
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/contrib/spidermiddleware/urllength.py", line 32, in <genexpr>
+    return (r for r in result or () if _filter(r))
+  File "/usr/local/lib/python2.7/dist-packages/Scrapy-0.14.4-py2.7.egg/scrapy/contrib/spidermiddleware/depth.py", line 56, in <genexpr>
+    return (r for r in result or () if _filter(r))
+  File "/var/data/procurement/scraper/procurementScrape/spiders/procurement_spider.py", line 905, in parse
+    updatesFile = open(self.tenderUpdatesFile, 'r')
+exceptions.IOError: [Errno 2] No such file or directory: '/var/data/procurement/app/shared/system/liveTenders.txt'
+COOKIE
+SPALITE=gglf5ijopp9jsskf27hms8cmr4; path=/
+DAVEBI=ko63fegcr56pc4rbfc6c4f95p2; path=/
+STARTING ENGINE
+Starting scrape
+parsing Tender: 89587 procurerURL: 1252
+parsing Tender: 89586 procurerURL: 1230
+parsing Tender: 89585 procurerURL: 3127
+parsing Tender: 89584 procurerURL: 2584
+parsing Tender: 89583 procurerURL: 2194
+parsing Tender: 89582 procurerURL: 2584
+parsing Tender: 89581 procurerURL: 8316
+parsing Tender: 89580 procurerURL: 1253
+parsing Tender: 89579 procurerURL: 1253
+parsing Tender: 89578 procurerURL: 1253
+parsing Tender: 89577 procurerURL: 1253
+parsing Tender: 89576 procurerURL: 18202
+parsing Tender: 89575 procurerURL: 1614
+parsing Tender: 89574 procurerURL: 2298
+parsing Tender: 89573 procurerURL: 29822
+parsing Tender: 89572 procurerURL: 1561
+parsing Tender: 89571 procurerURL: 1449
+parsing Tender: 89570 procurerURL: 29822
+parsing Tender: 89569 procurerURL: 32517
+parsing Tender: 89568 procurerURL: 8882
+parsing Tender: 89567 procurerURL: 4698
+parsing Tender: 89566 procurerURL: 1471
+parsing Tender: 89565 procurerURL: 9283
+parsing Tender: 89564 procurerURL: 22585
+parsing Tender: 89563 procurerURL: 1893
+parsing Tender: 89562 procurerURL: 2584
+parsing Tender: 89561 procurerURL: 1730
+parsing Tender: 89560 procurerURL: 8654
+parsing Tender: 89558 procurerURL: 1730
+parsing Tender: 89557 procurerURL: 1212
+parsing Tender: 89556 procurerURL: 1574
+parsing Tender: 89555 procurerURL: 3372
+parsing Tender: 89554 procurerURL: 1730
+parsing Tender: 89553 procurerURL: 1471
+parsing Tender: 89552 procurerURL: 1755
+parsing Tender: 89551 procurerURL: 1730
+parsing Tender: 89550 procurerURL: 25598
+parsing Tender: 89549 procurerURL: 1773
+parsing Tender: 89548 procurerURL: 1730
+parsing Tender: 89547 procurerURL: 1471
+parsing Tender: 89546 procurerURL: 2584
+parsing Tender: 89545 procurerURL: 1730
+parsing Tender: 89544 procurerURL: 3430
+parsing Tender: 89543 procurerURL: 3155
+parsing Tender: 89542 procurerURL: 2080
+parsing Tender: 89541 procurerURL: 3711
+parsing Tender: 89540 procurerURL: 10637
+parsing Tender: 89539 procurerURL: 1614
+parsing Tender: 89538 procurerURL: 20098
+parsing Tender: 89537 procurerURL: 3372
+parsing Tender: 89536 procurerURL: 6069
+parsing Tender: 89535 procurerURL: 1397
+parsing Tender: 89534 procurerURL: 2584
+parsing Tender: 89533 procurerURL: 1921
+parsing Tender: 89532 procurerURL: 15960
+parsing Tender: 89531 procurerURL: 2584
+parsing Tender: 89529 procurerURL: 2373
+parsing Tender: 89528 procurerURL: 5291
+parsing Tender: 89527 procurerURL: 1980
+parsing Tender: 89526 procurerURL: 3628
+parsing Tender: 89525 procurerURL: 28095
+parsing Tender: 89524 procurerURL: 12809
+parsing Tender: 89523 procurerURL: 2212
+parsing Tender: 89522 procurerURL: 7519
+parsing Tender: 89521 procurerURL: 32748
+parsing Tender: 89520 procurerURL: 28095
+parsing Tender: 89519 procurerURL: 18202
+parsing Tender: 89518 procurerURL: 1921
+parsing Tender: 89517 procurerURL: 1349
+parsing Tender: 89516 procurerURL: 1780
+parsing Tender: 89515 procurerURL: 12730
+parsing Tender: 89514 procurerURL: 1921
+parsing Tender: 89513 procurerURL: 1152
+parsing Tender: 89512 procurerURL: 1780
+parsing Tender: 89511 procurerURL: 1780
+parsing Tender: 89510 procurerURL: 1780
+parsing Tender: 89509 procurerURL: 1893
+parsing Tender: 89508 procurerURL: 1544
+parsing Tender: 89507 procurerURL: 1544
+parsing Tender: 89505 procurerURL: 20339
+parsing Tender: 89504 procurerURL: 13339
+parsing Tender: 89503 procurerURL: 1921
+parsing Tender: 89501 procurerURL: 1578
+parsing Tender: 89500 procurerURL: 1921
+parsing Tender: 89499 procurerURL: 3387
+89587
+MAIN SCRAPE COMPLETE
+FULL PATH: /var/data/procurement/app/shared/system
+remove: /var/data/procurement/app/shared/system/blackList.json
+remove: /var/data/procurement/app/shared/system/tenders.json
+remove: /var/data/procurement/app/shared/system/organisations.json
+remove: /var/data/procurement/app/shared/system/tenderCPVCode.json
+remove: /var/data/procurement/app/shared/system/failures.txt
+remove: /var/data/procurement/app/shared/system/scrapeInfo.txt
+remove: /var/data/procurement/app/shared/system/whiteList.json
+remove: /var/data/procurement/app/shared/system/tenderDocumentation.json
+remove: /var/data/procurement/app/shared/system/bidderResult.json
+remove: /var/data/procurement/app/shared/system/tenderBidders.json
+remove: /var/data/procurement/app/shared/system/tenderAgreements.json
+remove: /var/data/procurement/app/shared/system/complaints.json
+/var/data/procurement/app
+coping from: IncrementalScrapes/2013-08-06 00:31
+to: /var/data/procurement/app/shared/system
+removing incomplete tender data
+removing incomplete org data
+removing update flags
+processing json
+processing Orgs
+updating org url: 1252
+updating org url: 1230
+updating org url: 3127
+updating org url: 2584
+updating org url: 2194
+updating org url: 8316
+updating org url: 1253
+updating org url: 18202
+updating org url: 1614
+updating org url: 2298
+updating org url: 29822
+updating org url: 1561
+updating org url: 1449
+updating org url: 32517
+updating org url: 8882
+updating org url: 4698
+updating org url: 1471
+updating org url: 9283
+updating org url: 22585
+updating org url: 1893
+updating org url: 1730
+saving org: 11612
+updating org url: 1212
+updating org url: 1574
+updating org url: 3372
+updating org url: 1755
+updating org url: 25598
+updating org url: 1773
+saving org: 11613
+updating org url: 3155
+updating org url: 2080
+updating org url: 3711
+updating org url: 10637
+updating org url: 20098
+updating org url: 6069
+updating org url: 1397
+updating org url: 1921
+updating org url: 15960
+updating org url: 2373
+updating org url: 5291
+updating org url: 1980
+updating org url: 3628
+updating org url: 28095
+updating org url: 12809
+updating org url: 2212
+updating org url: 7519
+updating org url: 32748
+updating org url: 1349
+updating org url: 1780
+updating org url: 12730
+updating org url: 1152
+updating org url: 1544
+saving org: 11614
+updating org url: 13339
+updating org url: 1578
+updating org url: 3387
+processing tenders
+saving new tender: 89587
+saving new tender: 89586
+saving new tender: 89585
+storing hash81010tender#
+saving new tender: 89584
+saving new tender: 89583
+saving new tender: 89582
+saving new tender: 89581
+saving new tender: 89580
+storing hash81015tender#
+saving new tender: 89579
+storing hash81016tender#
+saving new tender: 89578
+storing hash81017tender#
+saving new tender: 89577
+storing hash81018tender#
+saving new tender: 89576
+saving new tender: 89575
+saving new tender: 89574
+saving new tender: 89573
+saving new tender: 89572
+saving new tender: 89571
+saving new tender: 89570
+saving new tender: 89569
+saving new tender: 89568
+saving new tender: 89567
+saving new tender: 89566
+saving new tender: 89565
+saving new tender: 89564
+saving new tender: 89563
+saving new tender: 89562
+saving new tender: 89561
+saving new tender: 89560
+saving new tender: 89558
+saving new tender: 89557
+saving new tender: 89556
+saving new tender: 89555
+saving new tender: 89554
+saving new tender: 89553
+saving new tender: 89552
+saving new tender: 89551
+saving new tender: 89550
+saving new tender: 89549
+saving new tender: 89548
+saving new tender: 89547
+saving new tender: 89546
+saving new tender: 89545
+saving new tender: 89544
+saving new tender: 89543
+saving new tender: 89542
+storing hash81052tender#
+saving new tender: 89541
+saving new tender: 89540
+saving new tender: 89539
+saving new tender: 89538
+saving new tender: 89537
+saving new tender: 89536
+saving new tender: 89535
+saving new tender: 89534
+saving new tender: 89533
+saving new tender: 89532
+saving new tender: 89531
+saving new tender: 89529
+saving new tender: 89528
+saving new tender: 89527
+saving new tender: 89526
+saving new tender: 89525
+saving new tender: 89524
+saving new tender: 89523
+saving new tender: 89522
+saving new tender: 89521
+saving new tender: 89520
+saving new tender: 89519
+saving new tender: 89518
+saving new tender: 89517
+saving new tender: 89516
+saving new tender: 89515
+saving new tender: 89514
+saving new tender: 89513
+saving new tender: 89512
+saving new tender: 89511
+saving new tender: 89510
+saving new tender: 89509
+saving new tender: 89508
+saving new tender: 89507
+saving new tender: 89505
+saving new tender: 89504
+saving new tender: 89503
+saving new tender: 89501
+saving new tender: 89500
+saving new tender: 89499
+processing bidders
+bidders: 0
+processing agreements
+agreement: 0
+processing docs
+document: 100
+document: 200
+document: 300
+document: 400
+document: 442
+processing sub cpv codes
+codes : 45200000
+cpvCode: 0
+codes : 22816100
+codes : 18100000
+codes : 18114000
+codes : 45200000
+codes : 64222000
+codes : 45230000
+codes : 45400000
+codes : 45233142
+codes : 45200000
+codes : 45200000
+codes : 45200000
+codes : 45200000
+codes : 63100000
+codes : 79952100
+codes : 45410000
+codes : 45420000
+codes : 45421000
+codes : 45421100
+codes : 45421110
+codes : 45421111
+codes : 45421112
+codes : 45421120
+codes : 45422000
+codes : 45422100
+codes : 45430000
+codes : 45431000
+codes : 45431100
+codes : 45431200
+codes : 45432100
+codes : 45432200
+codes : 45432210
+codes : 45440000
+codes : 45443000
+codes : 45450000
+codes : 71500000
+codes : 45232150
+codes : 45300000
+codes : 45310000
+codes : 45311000
+codes : 45311100
+codes : 45311200
+codes : 45314000
+codes : 45315000
+codes : 45316000
+codes : 45316100
+codes : 45316110
+codes : 45317000
+codes : 45320000
+codes : 45330000
+codes : 45331000
+codes : 45332000
+codes : 45332200
+codes : 45332300
+codes : 45332400
+codes : 45350000
+codes : 45351000
+codes : 22810000
+codes : 22820000
+codes : 45400000
+codes : 33600000
+codes : 03410000
+codes : 45400000
+codes : 45300000
+codes : 71320000
+codes : 45230000
+codes : 45200000
+codes : 45400000
+codes : 45200000
+codes : 71300000
+codes : 45200000
+codes : 71321200
+codes : 45200000
+codes : 38651600
+codes : 38652100
+codes : 45200000
+codes : 45200000
+codes : 45200000
+codes : 45261210
+codes : 45261213
+codes : 45200000
+codes : 45200000
+codes : 30200000
+codes : 45230000
+codes : 45200000
+codes : 45400000
+codes : 79212000
+codes : 45200000
+codes : 45400000
+codes : 45400000
+codes : 50100000
+codes : 48920000
+codes : 39100000
+codes : 39112100
+codes : 39113100
+codes : 39120000
+codes : 39121100
+codes : 39122000
+codes : 39122100
+codes : 39131000
+codes : 39131100
+cpvCode: 100
+codes : 39136000
+codes : 39142000
+codes : 39143100
+codes : 39143110
+codes : 39143112
+codes : 39143113
+codes : 39143210
+codes : 22400000
+codes : 92221000
+codes : 45233220
+codes : 32523000
+codes : 32524000
+codes : 32552100
+codes : 45342000
+codes : 45247211
+codes : 43400000
+codes : 34300000
+codes : 33100000
+codes : 45200000
+codes : 32200000
+codes : 45200000
+codes : 39100000
+codes : 39130000
+codes : 39143113
+codes : 45200000
+codes : 45110000
+codes : 31300000
+codes : 31320000
+codes : 33100000
+codes : 45430000
+codes : 45443000
+codes : 45453100
+codes : 45454100
+codes : 45400000
+codes : 33600000
+codes : 45400000
+codes : 45311000
+codes : 30213300
+codes : 33600000
+codes : 33100000
+codes : 79800000
+codes : 45233222
+codes : 34965000
+codes : 44321000
+codes : 92600000
+codes : 09100000
+codes : 45223600
+codes : 45200000
+codes : 50323100
+codes : 50323200
+codes : 45400000
+processing white list
+processing black list
+process complaints
+diffing
+storing tender results
+setting up users
+generating aggregate data
+No sub_code: 2
+No sub_code: 11
+No sub_code: 19
+No sub_code: 90
+No sub_code: 99
+No sub_code: 130
+No sub_code: 154
+No sub_code: 163
+No sub_code: 184
+No sub_code: 185
+No sub_code: 274
+No sub_code: 280
+No sub_code: 297
+No sub_code: 354
+No sub_code: 503
+No sub_code: 602
+No sub_code: 622
+No sub_code: 632
+No sub_code: 670
+No sub_code: 683
+No sub_code: 686
+No sub_code: 882
+No sub_code: 909
+No sub_code: 919
+No sub_code: 953
+No sub_code: 956
+No sub_code: 1001
+No sub_code: 1126
+No sub_code: 1326
+No sub_code: 1474
+No sub_code: 1479
+No sub_code: 1819
+No sub_code: 6441
+No sub_code: 75305
+No sub_code: 75306
+No sub_code: 76498
+No sub_code: 76508
+No sub_code: 76534
+No sub_code: 76538
+No sub_code: 76540
+No sub_code: 76575
+No sub_code: 76600
+No sub_code: 76609
+No sub_code: 76626
+No sub_code: 76638
+No sub_code: 76661
+No sub_code: 76662
+No sub_code: 76677
+No sub_code: 76681
+No sub_code: 76686
+No sub_code: 76687
+No sub_code: 76689
+No sub_code: 76698
+No sub_code: 76725
+No sub_code: 76739
+No sub_code: 76744
+No sub_code: 76757
+No sub_code: 76799
+No sub_code: 76805
+No sub_code: 76806
+No sub_code: 76807
+No sub_code: 76808
+No sub_code: 76809
+No sub_code: 76810
+No sub_code: 76811
+No sub_code: 76815
+No sub_code: 76824
+No sub_code: 76842
+No sub_code: 76846
+No sub_code: 76867
+No sub_code: 76872
+No sub_code: 76881
+No sub_code: 76905
+No sub_code: 76913
+No sub_code: 76936
+No sub_code: 76945
+No sub_code: 76958
+No sub_code: 77004
+No sub_code: 77019
+No sub_code: 77027
+No sub_code: 77028
+No sub_code: 77029
+No sub_code: 77032
+No sub_code: 77042
+No sub_code: 77056
+No sub_code: 77065
+No sub_code: 77069
+No sub_code: 77106
+No sub_code: 77142
+No sub_code: 77148
+No sub_code: 77155
+No sub_code: 77156
+No sub_code: 77176
+No sub_code: 77177
+No sub_code: 77195
+No sub_code: 77231
+No sub_code: 77236
+No sub_code: 77243
+No sub_code: 77295
+No sub_code: 77309
+No sub_code: 77346
+No sub_code: 77347
+No sub_code: 77365
+No sub_code: 77391
+No sub_code: 77419
+No sub_code: 77420
+No sub_code: 77423
+No sub_code: 77424
+No sub_code: 77425
+No sub_code: 77426
+No sub_code: 77427
+No sub_code: 77434
+No sub_code: 77439
+No sub_code: 77467
+No sub_code: 77513
+No sub_code: 77517
+No sub_code: 77523
+No sub_code: 77533
+No sub_code: 77589
+No sub_code: 77630
+No sub_code: 77652
+No sub_code: 77655
+No sub_code: 77670
+No sub_code: 77672
+No sub_code: 78092
+No sub_code: 78102
+No sub_code: 78107
+No sub_code: 78145
+No sub_code: 78148
+No sub_code: 78155
+No sub_code: 78167
+No sub_code: 78169
+No sub_code: 78209
+No sub_code: 78245
+No sub_code: 78246
+No sub_code: 78254
+No sub_code: 78265
+No sub_code: 78266
+No sub_code: 78272
+No sub_code: 78278
+No sub_code: 78280
+No sub_code: 78283
+No sub_code: 78290
+No sub_code: 78306
+No sub_code: 78320
+No sub_code: 78334
+No sub_code: 78343
+No sub_code: 78353
+No sub_code: 78379
+No sub_code: 78423
+No sub_code: 78441
+No sub_code: 78456
+No sub_code: 78489
+No sub_code: 78494
+No sub_code: 78507
+No sub_code: 78508
+No sub_code: 78509
+No sub_code: 78525
+No sub_code: 78526
+No sub_code: 78546
+No sub_code: 78552
+No sub_code: 78565
+No sub_code: 78570
+No sub_code: 78571
+No sub_code: 78572
+No sub_code: 78586
+No sub_code: 78594
+No sub_code: 78596
+No sub_code: 78612
+No sub_code: 78655
+No sub_code: 78666
+No sub_code: 78678
+No sub_code: 78680
+No sub_code: 78686
+No sub_code: 78694
+No sub_code: 78706
+No sub_code: 78714
+No sub_code: 78729
+No sub_code: 78731
+No sub_code: 78759
+No sub_code: 78765
+No sub_code: 78791
+No sub_code: 78814
+No sub_code: 78815
+No sub_code: 78846
+No sub_code: 78849
+No sub_code: 78852
+No sub_code: 78890
+No sub_code: 78901
+No sub_code: 78908
+No sub_code: 78920
+No sub_code: 78931
+No sub_code: 78939
+No sub_code: 78950
+No sub_code: 78953
+No sub_code: 78954
+No sub_code: 78960
+No sub_code: 78961
+No sub_code: 78963
+No sub_code: 78972
+No sub_code: 78974
+No sub_code: 78976
+No sub_code: 78983
+No sub_code: 78997
+No sub_code: 79010
+No sub_code: 79018
+No sub_code: 79029
+No sub_code: 79030
+No sub_code: 79039
+No sub_code: 79041
+No sub_code: 79046
+No sub_code: 79050
+No sub_code: 79057
+No sub_code: 79058
+No sub_code: 79062
+No sub_code: 79065
+No sub_code: 79067
+No sub_code: 79068
+No sub_code: 79071
+No sub_code: 79073
+No sub_code: 79074
+No sub_code: 79077
+No sub_code: 79078
+No sub_code: 79093
+No sub_code: 79096
+No sub_code: 79101
+No sub_code: 79112
+No sub_code: 79126
+No sub_code: 79141
+No sub_code: 79144
+No sub_code: 79154
+No sub_code: 79157
+No sub_code: 79162
+No sub_code: 79164
+No sub_code: 79174
+No sub_code: 79181
+No sub_code: 79187
+No sub_code: 79189
+No sub_code: 79220
+No sub_code: 79227
+No sub_code: 79228
+No sub_code: 79234
+No sub_code: 79252
+No sub_code: 79253
+No sub_code: 79267
+No sub_code: 79272
+No sub_code: 79274
+No sub_code: 79275
+No sub_code: 79278
+No sub_code: 79288
+No sub_code: 79292
+No sub_code: 79318
+No sub_code: 79322
+No sub_code: 79325
+No sub_code: 79327
+No sub_code: 79329
+No sub_code: 79335
+No sub_code: 79336
+No sub_code: 79337
+No sub_code: 79338
+No sub_code: 79339
+No sub_code: 79349
+No sub_code: 79351
+No sub_code: 79352
+No sub_code: 79353
+No sub_code: 79369
+No sub_code: 79385
+No sub_code: 79398
+No sub_code: 79399
+No sub_code: 79400
+No sub_code: 79404
+No sub_code: 79411
+No sub_code: 79430
+No sub_code: 79439
+No sub_code: 79451
+No sub_code: 79453
+No sub_code: 79466
+No sub_code: 79470
+No sub_code: 79473
+No sub_code: 79476
+No sub_code: 79488
+No sub_code: 79491
+No sub_code: 79496
+No sub_code: 79504
+No sub_code: 79505
+No sub_code: 79506
+No sub_code: 79509
+No sub_code: 79511
+No sub_code: 79512
+No sub_code: 79516
+No sub_code: 79526
+No sub_code: 79527
+No sub_code: 79532
+No sub_code: 79543
+No sub_code: 79550
+No sub_code: 79554
+No sub_code: 79556
+No sub_code: 79564
+No sub_code: 79568
+No sub_code: 79570
+No sub_code: 79571
+No sub_code: 79572
+No sub_code: 79573
+No sub_code: 79598
+No sub_code: 79600
+No sub_code: 79605
+No sub_code: 79606
+No sub_code: 79610
+No sub_code: 79620
+No sub_code: 79628
+No sub_code: 79635
+No sub_code: 79643
+No sub_code: 79656
+No sub_code: 79657
+No sub_code: 79667
+No sub_code: 79678
+No sub_code: 79686
+No sub_code: 79693
+No sub_code: 79710
+No sub_code: 79715
+No sub_code: 79716
+No sub_code: 79717
+No sub_code: 79762
+No sub_code: 79764
+No sub_code: 79765
+No sub_code: 79775
+No sub_code: 79781
+No sub_code: 79786
+No sub_code: 79801
+No sub_code: 79813
+No sub_code: 79822
+No sub_code: 79832
+No sub_code: 79834
+No sub_code: 79837
+No sub_code: 79840
+No sub_code: 79841
+No sub_code: 79843
+No sub_code: 79845
+No sub_code: 79847
+No sub_code: 79851
+No sub_code: 79860
+No sub_code: 79874
+No sub_code: 79875
+No sub_code: 79889
+No sub_code: 79893
+No sub_code: 79894
+No sub_code: 79911
+No sub_code: 79913
+No sub_code: 79915
+No sub_code: 79934
+No sub_code: 79956
+No sub_code: 79958
+No sub_code: 79983
+No sub_code: 79985
+No sub_code: 79995
+No sub_code: 80046
+No sub_code: 80188
+Tenders: 0
+Tenders: 1000
+Tenders: 2000
+Tenders: 3000
+Tenders: 4000
+Tenders: 5000
+Tenders: 6000
+Tenders: 7000
+Tenders: 8000
+Tenders: 9000
+Tenders: 10000
+Tenders: 11000
+Tenders: 12000
+Tenders: 13000
+Tenders: 14000
+Tenders: 15000
+Tenders: 16000
+Tenders: 17000
+Tenders: 18000
+Tenders: 19000
+Tenders: 20000
+Tenders: 21000
+Tenders: 22000
+Tenders: 23000
+Tenders: 24000
+Tenders: 25000
+Tenders: 26000
+Tenders: 27000
+Tenders: 28000
+Tenders: 29000
+Tenders: 30000
+Tenders: 31000
+Tenders: 32000
+Tenders: 33000
+Tenders: 34000
+Tenders: 35000
+Tenders: 36000
+Tenders: 37000
+Tenders: 38000
+Tenders: 39000
+Tenders: 40000
+Tenders: 41000
+Tenders: 42000
+Tenders: 43000
+Tenders: 44000
+Tenders: 45000
+Tenders: 46000
+Tenders: 47000
+Tenders: 48000
+Tenders: 49000
+Tenders: 50000
+Tenders: 51000
+Tenders: 52000
+Tenders: 53000
+Tenders: 54000
+Tenders: 55000
+Tenders: 56000
+Tenders: 57000
+Tenders: 58000
+Tenders: 59000
+Tenders: 60000
+Tenders: 61000
+Tenders: 62000
+Tenders: 63000
+Tenders: 64000
+Tenders: 65000
+Tenders: 66000
+Tenders: 67000
+Tenders: 68000
+Tenders: 69000
+Tenders: 70000
+Tenders: 71000
+Tenders: 72000
+Tenders: 73000
+Tenders: 74000
+Tenders: 75000
+Tenders: 76000
+Tenders: 77000
+Tenders: 78000
+Tenders: 79000
+calc averages
+storing into db
+removing old stats
+creating new stats
+prcoessing: 0
+processing: total
+processing: simple electronic
+processing: electronic
+prcoessing: 2010
+processing: total
+processing: simple electronic
+processing: electronic
+prcoessing: 2011
+processing: total
+cant find classifier: 14820000
+missing parent: 42924000
+missing parent: 39250000
+missing parent: 42924000
+missing parent: 39250000
+missing parent: 42924000
+missing parent: 39250000
+processing: simple electronic
+processing: electronic
+prcoessing: 2012
+processing: total
+cant find classifier: 14820000
+missing parent: 42924000
+missing parent: 42924000
+missing parent: 39250000
+missing parent: 42924000
+missing parent: 39250000
+processing: simple electronic
+processing: electronic
+prcoessing: 2013
+processing: total
+missing parent: 39250000
+missing parent: 39250000
+missing parent: 39250000
+processing: simple electronic
+processing: electronic
+storing org meta
+finding competitors
+finding corruption
+competition
+bidding
+risky codes
+amendment
+black list
+storing risk indicators on tenders
+creating list of live tenders
+storing update time
+[tigeorgia@95.211.171.65] Executing task 'update_db'
+dump db
+[localhost] local: mysqldump -u root -proot procurement --add-drop-table --ignore-table=procurement.cpv_groups --ignore-table=procurement.cpv_groups_tender_cpv_classifiers --ignore-table=procurement.procurer_watches --ignore-table=procurement.searches --ignore-table=procurement.supplier_watches --ignore-table=procurement.users --ignore-table=procurement.watch_tenders > dump.sql
+[localhost] local: tar czf dump.sql.tar.gz dump.sql
+[tigeorgia@95.211.171.65] put: dump.sql.tar.gz -> dump.sql.tar.gz
+[tigeorgia@95.211.171.65] run: tar xzf dump.sql.tar.gz
+[tigeorgia@95.211.171.65] run: rm dump.sql.tar.gz
+[tigeorgia@95.211.171.65] run: ionice -c2 -n6 mysql -u tigeorgia_proc -psvku7v810 -D procurement < dump.sql
+[tigeorgia@95.211.171.65] run: rm dump.sql
+[localhost] local: rm dump.sql dump.sql.tar.gz
+[tigeorgia@95.211.171.65] run: rake procurement:generate_alerts
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: sending digest
+[tigeorgia@95.211.171.65] out: emailing chris@transparency.ge
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking search
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: checking searches
+[tigeorgia@95.211.171.65] out: 
+
+[tigeorgia@95.211.171.65] run: rake procurement:generate_tender_bulk_data
+[tigeorgia@95.211.171.65] run: zip AllTenders AllTenders.csv
+[tigeorgia@95.211.171.65] out:   adding: AllTenders.csv (deflated 86%)
+[tigeorgia@95.211.171.65] out: 
+
+
+Done.
+Disconnecting from 95.211.171.65... done.
