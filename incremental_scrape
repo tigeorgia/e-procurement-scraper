@@ -3,7 +3,11 @@
 
 PROJECT=/var/data/procurement/
 SCRAPER=scraper/
+<<<<<<< HEAD
 LOCKFILE=inc_running.txt
+=======
+LOCKFILE=running.txt
+>>>>>>> fd5df94f6fcf677ddcde819e4c4c89be3e911cf7
 SPIDER=procurementScrape/spiders/procurement_spider.py
 OUTPUT=app/
 CURRENT=current/

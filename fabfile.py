@@ -9,7 +9,10 @@ def update_db():
     uploaddb()
     importdb()
     cleanup()
-    processemailalerts()
+    postProcess()
 
-def process_mail():
-    processemailalerts()
+def post_scrape_process():
+    postProcess()
+
+def pre_scrape_process():
+    storePreScrapeSearchResults()    
