@@ -762,24 +762,6 @@ class ProcurementSpider(BaseSpider):
         request = Request(url,callback=self.parseDispute, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         yield request
 
-
-    def parseDisputeLists(self):
-      metadata = {"page" : 1, "final_page" : -1}
-      print "scraping white list"
-      url = self.baseListUrl+self.whiteListUrl+str(1)
-      request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
-      yield request
-              
-      print "scraping black list"
-      url = self.baseListUrl+self.blackListUrl+str(1)
-      request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      yield request
-
-      print "scraping disputes"
-      url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
-      request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-      yield request
-
     def getLastScrapedTender(self):
       #find where the last scrape left off
       scrapeList = []
@@ -901,13 +883,31 @@ class ProcurementSpider(BaseSpider):
         yield request
       
         #now that we have queued up the scrape to find new tenders lets go through our inProgress list and scrape for updates
-        if self.scrapeMode == "INCREMENTAL":
+        if self.scrapeMode == False: #"INCREMENTAL":
           updatesFile = open(self.tenderUpdatesFile, 'r')
           for url_id in updatesFile:
             item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id.replace("\n","")
             request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
             print "update tender: "+item_url
             yield request
+   
+        #parse white/black/disputes lists
+        metadata = {"page" : 1, "final_page" : -1}
+        print "scraping white list"
+        url = self.baseListUrl+self.whiteListUrl+str(1)
+        request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
+        yield request
+                
+        print "scraping black list"
+        url = self.baseListUrl+self.blackListUrl+str(1)
+        request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+        yield request
+
+        print "scraping disputes"
+        url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
+        request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+        yield request
+
 
 #ERROR HANDLING SECTION#
     def urlPageFailed(self,error):

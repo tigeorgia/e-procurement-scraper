@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 # load rvm ruby
 
-PROJECT=~/Projects/Procurement/
+PROJECT=/var/data/procurement/
 SCRAPER=scraper/
-LOCKFILE=running.txt
+LOCKFILE=full_running.txt
+INCLOCKFILE=inc_running.txt
 SPIDER=procurementScrape/spiders/procurement_spider.py
-OUTPUT=app/current
+OUTPUT=app/
+CURRENT=current/
+PREFABFUNC=pre_scrape_process
+POSTFABFUNC=update_db
 
 source /home/tigeorgia/.rvm/environments/ruby-1.9.2-p290
 
 cd $PROJECT$SCRAPER
 if [ ! -f $PROJECT$SCRAPER$LOCKFILE ]; then
-	touch $PROJECT$SCRAPER$LOCKFILE
-	python $PROJECT$SCRAPER$SPIDER FULL /var/data/procurement/app/current 
-	cd $PROJECT$OUTPUT
-	#rake procurement:full_scrape
-	rm $PROJECT$SCRAPER$LOCKFILE
+  touch $PROJECT$SCRAPER$LOCKFILE
+  /usr/local/bin/fab $PREFABFUNC
+  python $PROJECT$SCRAPER$SPIDER FULL $PROJECT$OUTPUT
+  cd $PROJECT$OUTPUT$CURRENT
+
+  while [ -f $PROJECT$SCRAPER$INCLOCKFILE ]
+  do
+   sleep 59
+  done
+  rake procurement:full_scrape
+  cd $PROJECT$SCRAPER
+  /usr/local/bin/fab $POSTFABFUNC
+  rm $PROJECT$SCRAPER$LOCKFILE
 fi
-	
