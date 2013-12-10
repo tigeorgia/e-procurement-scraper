@@ -75,25 +75,26 @@ class ProcurementscrapePipeline(object):
         self.infoFile.write("StartTime: " +nowStr+ "\n")
         
     def process_item(self, item, spider):
-        if isinstance(item, Tender):
+        itemClassName = item.__class__.__name__
+        if (itemClassName == "Tender"):
           self.tenderExporter.export_item(item)
-        elif isinstance(item, Organisation):
+        elif (itemClassName == "Organisation"):
           self.procurerExporter.export_item(item)
-        elif isinstance(item, TenderBidder):
+        elif (itemClassName == "TenderBidder"):
           self.biddersExporter.export_item(item)
-        elif isinstance(item, TenderAgreement):
+        elif (itemClassName == "TenderAgreement"):
           self.agreementExporter.export_item(item)
-        elif isinstance(item, TenderDocument):
+        elif (itemClassName == "TenderDocument"):
           self.documentationExporter.export_item(item)
-        elif isinstance(item, CPVCode):
+        elif (itemClassName == "CPVCode"):
           self.cpvCodeExporter.export_item(item)
-        elif isinstance(item, WhiteListObject):
+        elif (itemClassName == "WhiteListObject"):
           self.whiteListExporter.export_item(item)
-        elif isinstance(item, BlackListObject):
+        elif (itemClassName == "BlackListObject"):
           self.blackListExporter.export_item(item)
-        elif isinstance(item, Complaint):
+        elif (itemClassName == "Complaint"):
           self.complaintExporter.export_item(item)
-        elif isinstance(item, BidderResult):
+        elif (itemClassName == "BidderResult"):
           self.bidderResultExporter.export_item(item)
         return item
     

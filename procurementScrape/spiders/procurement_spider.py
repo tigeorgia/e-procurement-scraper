@@ -5,7 +5,10 @@
 from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
-from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint, BidderResult
+from scrapy.utils.project import get_project_settings
+import imp
+items = imp.load_source('items', '/mnt/drvScrapper/procurement/scraper/procurementScrape/items.py')
+from items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint, BidderResult
 import os
 import sys
 import httplib2
@@ -398,7 +401,11 @@ class ProcurementSpider(BaseSpider):
         item['tenderRegistrationNumber']  = self.findKeyValue( u"სატენდერო განცხადების ნომერი", keyPairs, conditions ).strip()
 
         conditions =  "img",">","<"
-        item['tenderStatus']  = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions ).strip()
+	tenderStatusValue = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions )
+        if tenderStatusValue is None:
+            item['tenderStatus']  = self.findKeyValue( u"ტენდერის სტატუსი", keyPairs, conditions ).strip()
+        else:
+            item['tenderStatus']  = tenderStatusValue.strip()
         
         conditions = ">","<"
         item['tenderAnnouncementDate'] =   self.findKeyValue( u"ტენდერის გამოცხადების თარიღი", keyPairs, conditions ).strip()     
@@ -421,9 +428,13 @@ class ProcurementSpider(BaseSpider):
         item['amountToSupply'] =  self.findKeyValue( u"შესყიდვის რაოდენობა ან მოცულობა", keyPairs, conditions ).strip()
         item['supplyPeriod'] =  self.findKeyValue( u"მოწოდების ვადა", keyPairs, conditions ).strip()
         item['offerStep'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
-        item['guaranteeAmount'] =  self.findKeyValue( u"შეთავაზების ფასის კლების ბიჯი", keyPairs, conditions ).strip()
+        guaranteeAmountVal = self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
+        if guaranteeAmountVal is not None:
+            item['guaranteeAmount'] =  guaranteeAmountVal.strip()
+        else:
+            item['guaranteeAmount'] = ""
 
-        period = self.findKeyValue( u"გარანტიის ოდენობა", keyPairs, conditions )
+        period = self.findKeyValue( u"გარანტიის მოქმედების ვადა", keyPairs, conditions )
         if period is not None:
           item['guaranteePeriod'] = period.strip()
         else:
@@ -937,12 +948,13 @@ class ProcurementSpider(BaseSpider):
         self.failedRequests.append(requestFailure)
 def main():
     # shut off log
-    from scrapy.conf import settings
+    #from scrapy.conf import settings
+    settings = get_project_settings()
     settings.overrides['LOG_ENABLED'] = False
  
     # set up crawler
     from scrapy.crawler import CrawlerProcess
- 
+     
     crawler = CrawlerProcess(settings)
     crawler.install()
     crawler.configure()
