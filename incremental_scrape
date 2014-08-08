@@ -3,27 +3,26 @@
 
 PROJECT=/var/data/procurement/
 SCRAPER=scraper/
-<<<<<<< HEAD
 LOCKFILE=inc_running.txt
-=======
-LOCKFILE=running.txt
->>>>>>> fd5df94f6fcf677ddcde819e4c4c89be3e911cf7
 SPIDER=procurementScrape/spiders/procurement_spider.py
 OUTPUT=app/
 CURRENT=current/
 PREFABFUNC=pre_scrape_process
+PREFABRAKE=import_online_db
 POSTFABFUNC=update_db
 
-source /home/tigeorgia/.rvm/environments/ruby-1.9.2-p290
+source /home/tigeorgia/.rvm/environments/ruby-1.9.3-p547
 
 cd $PROJECT$SCRAPER
 if [ ! -f $PROJECT$SCRAPER$LOCKFILE ]; then
   touch $PROJECT$SCRAPER$LOCKFILE
   /usr/local/bin/fab $PREFABFUNC
   python $PROJECT$SCRAPER$SPIDER INCREMENTAL $PROJECT$OUTPUT
+  /usr/local/bin/fab $PREFABRAKE
   cd $PROJECT$OUTPUT$CURRENT
   rake procurement:full_scrape
   cd $PROJECT$SCRAPER
   /usr/local/bin/fab $POSTFABFUNC
   rm $PROJECT$SCRAPER$LOCKFILE
 fi
+

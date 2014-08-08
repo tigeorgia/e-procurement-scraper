@@ -1,0 +1,98 @@
+from fabric.api import local, cd, run, env, shell_env
+from fabric.operations import put, get
+
+LOCALUSER='user'
+LOCALDB='database'
+LOCALDBPW ='password'
+
+REMOTEUSER='remote_user'
+REMOTEDB='remote_database'
+REMOTEAPPDIR='$HOME/webapps/tenderwatch'
+REMOTEDBPW='remote_database'
+
+DBFILE = 'dump.sql'
+DBFILE_ONLINE = 'dump_online.sql'
+DBZIP = 'dump.sql.tar.gz'
+DBZIP_ONLINE = 'dump_online.sql.tar.gz'
+
+
+#TABLES=['--ignore-table='+LOCALDB+'.cpv_groups',
+#        '--ignore-table='+LOCALDB+'.cpv_groups_tender_cpv_classifiers',
+#        '--ignore-table='+LOCALDB+'.procurer_watches',
+#        '--ignore-table='+LOCALDB+'.searches',
+#        '--ignore-table='+LOCALDB+'.supplier_watches',
+#        '--ignore-table='+LOCALDB+'.users',
+#        '--ignore-table='+LOCALDB+'.watch_tenders']
+
+# Dump online db, (all the tables?)
+def dump_procurement_db():
+  print "dump online procurement db."
+
+  #run("ionice -c2 -n6 mysqldump -u {user} -p{dbpass} {db} > {dbfile}".format(user=REMOTEUSER,db=REMOTEDB,dbpass=REMOTEDBPW,dbfile=DBFILE_ONLINE))
+  run("mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}".format(user=REMOTEUSER,db=REMOTEDB,dbpass=REMOTEDBPW,dbfile=DBFILE_ONLINE))
+
+#compress online db
+def compress_online_db():
+  print "compresses online procurement db."
+  run("tar czf {archivefile}.tar.gz {sqlfile}".format(archivefile=DBFILE_ONLINE,sqlfile=DBFILE_ONLINE))
+
+#download to scraper server
+def download_online_db():
+  print "download online procurement db, uncompresses it, then deletes the local compressed file."
+  get(DBZIP_ONLINE,DBZIP_ONLINE)
+  local("tar xzf {tarfile}".format(tarfile=DBZIP_ONLINE))
+  local("rm {tarfile}".format(tarfile=DBZIP_ONLINE))
+
+#import full db to scraper db
+def import_db_scraper():
+  print "import downloaded procurement db into scraper db, then delete it."
+  local("mysql -u {user} -p{dbpass} -D {db} < {dbfile}".format(user=LOCALUSER,db=LOCALDB,dbpass=LOCALDBPW,dbfile=DBFILE_ONLINE))
+  local("rm {sqlfile}".format(sqlfile=DBFILE_ONLINE))
+
+def cleanup_online_archive():
+  print "Deletes online files"
+  run("rm {sqlfile} {tarfile}.tar.gz".format(sqlfile=DBFILE_ONLINE,tarfile=DBFILE_ONLINE))
+
+
+# Dump the database
+def dumpdb():
+  print "Dump local procurement db."
+
+  local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(
+    user=LOCALUSER,
+    db=LOCALDB,
+    dbpass=LOCALDBPW,
+    dbfile=DBFILE))
+
+def compressdb():
+    print "Compresses the dumped db using tar."
+    local("tar czf {tarfile}.tar.gz {sqlfile}".format(tarfile=DBFILE,sqlfile=DBFILE))
+
+def uploaddb():
+    print "Uploads the compressed db file, uncompresses it remotely, and deletes the remote compressed file."
+    put(DBZIP,DBZIP)
+    run("tar xzf {tarfile}".format(tarfile=DBZIP))
+    run("rm {tarfile}".format(tarfile=DBZIP))
+
+def importdb():
+    print "Remotely imports the db file, then deletes it."
+    run("ionice -c2 -n6 mysql -u {user} -p{dbpass} -D {db} < {dbfile}".format(user=REMOTEUSER,db=REMOTEDB,dbpass=REMOTEDBPW,dbfile=DBFILE))
+    run("rm {tarfile}".format(tarfile=DBFILE))
+
+def storePreScrapeSearchResults():
+   with cd(REMOTEAPPDIR+"/current"):
+        with shell_env(PATH=REMOTEAPPDIR+"/bin:$PATH",GEM_HOME=REMOTEAPPDIR+"/gems",RUBYLIB=REMOTEAPPDIR+"/lib"):
+                run('rake procurement:pre_store_search_results')
+
+def postProcess():
+   print "Generates e-mail alerts and creates the CSV file"
+   with cd(REMOTEAPPDIR+"/current"):
+        with shell_env(PATH=REMOTEAPPDIR+"/bin:$PATH",GEM_HOME=REMOTEAPPDIR+"/gems",RUBYLIB=REMOTEAPPDIR+"/lib"):
+                run('rake procurement:generate_alerts')
+                run('rake procurement:generate_tender_bulk_data')
+                run("zip ./public/AllTenders AllTenders.csv")
+
+def cleanup():
+    print "Cleans up the local dump file and tar file"
+    local("rm {sqlfile} {tarfile}.tar.gz".format(sqlfile=DBFILE,tarfile=DBFILE))
+

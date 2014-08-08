@@ -1,0 +1,26 @@
+from fabric.api import run, env
+from db_import import *
+
+env.hosts=['user@host']
+env.passwords = {'user@host': 'password'}
+
+def update_db():
+    dumpdb()
+    compressdb()
+    uploaddb()
+    importdb()
+    cleanup()
+    postProcess()
+
+def import_online_db():
+    dump_procurement_db()
+    compress_online_db()
+    download_online_db()
+    import_db_scraper()
+    cleanup_online_archive()
+
+def post_scrape_process():
+    postProcess()
+
+def pre_scrape_process():
+    storePreScrapeSearchResults()
