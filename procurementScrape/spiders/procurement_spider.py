@@ -3,24 +3,41 @@
 
 
 from scrapy.selector import HtmlXPathSelector
-from scrapy.spider import BaseSpider
+from scrapy.spider import Spider
 from scrapy.http import Request
 from scrapy.utils.project import get_project_settings
-import imp
-items = imp.load_source('items', '/mnt/drvScrapper/procurement/scraper/procurementScrape/items.py')
-from items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint, BidderResult
+
+"""
+This below is not needed, we can just import as a regular module, given that we operate from the project's main folder
+"""
+# import imp
+# items = imp.load_source('items', 'procurementScrape/items.py')
+
+from procurementScrape.items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint #, BidderResult
 import os
 import sys
 import httplib2
 import shutil
-from time import sleep
+#from time import sleep
 
-class ProcurementSpider(BaseSpider):
+class ProcurementSpider( Spider):
+    
+    def __init__(self):
+        super( ProcurementSpider, self).__init__()
+        # only defining properties, to suppress all related warnings
+        self.sessionCookies = None
+        self.scrapeMode = None
+        self.scrapePath = None
+        self.firstTender = None
+        self.tenderUpdatesFile = None
+        self.fixpath = None
+
+    
     name = "procurement"
     allowed_domains = ["procurement.gov.ge", "tenders.procurement.gov.ge"]
     baseUrl = "https://tenders.procurement.gov.ge/public/"
     mainPageBaseUrl = baseUrl+"lib/controller.php?action=search_app&page="
-
+    
     baseListUrl = "http://procurement.gov.ge/index.php?lang_id=GEO"
     blackListUrl = "&sec_id=14&entrant="
     whiteListUrl = "&sec_id=62&entrant="
@@ -35,9 +52,9 @@ class ProcurementSpider(BaseSpider):
     agreementCount = 0
     docCount = 0
     failedRequests = []
-   
+    
     def make_requests_from_url(self, url):
-        return Request(url, cookies=self.sessionCookies,headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
+        return Request(url, cookies=self.sessionCookies, headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
         
     def setSessionCookies(self,sessionCookie):
         self.sessionCookies = sessionCookie
@@ -52,7 +69,7 @@ class ProcurementSpider(BaseSpider):
         hxs = HtmlXPathSelector(response)
         resultsDividersXPath = hxs.select('//div[contains(@id, "agency_docs")]//div')
         resultsDividers = resultsDividersXPath.extract()
-     
+        
         
         #get results documents      
         if resultsDividers.__len__() >= 2:
@@ -61,136 +78,141 @@ class ProcurementSpider(BaseSpider):
 
             #parse results section if there is one
             if winnerDiv.find(u"ხელშეკრულება") > -1:    
-              amendmentNumber = 0
-              item = TenderAgreement()
-              item["tenderID"] = tenderID
-              item["AmendmentNumber"] = str(amendmentNumber)
-              
-              index = winnerDiv.find("ShowProfile")
-              index = winnerDiv.find("(",index)
-              endIndex = winnerDiv.find(")",index)
-              
-              orgUrl = winnerDiv[index+1:endIndex]
-              item["OrgUrl"] = orgUrl
-                      
-              index = winnerDiv.find(u"ნომერი/თანხა")
-              endIndex = winnerDiv.find("<br",index)
-              index = winnerDiv.rfind("/",index,endIndex)
-              item["Amount"] = winnerDiv[index+1:endIndex].strip()
-              
-              #there seem to be 2 different types of agreement date types
-              #one has a single Contract validity date and the other has a start and end date
-              dateRange = winnerDiv.find("-",index)
-              if dateRange > -1:
-                index = winnerDiv.find(u"ძალაშია",index)
-                index = winnerDiv.find(":",index)
-                endIndex = winnerDiv.find("-",index)
-                item["StartDate"] = winnerDiv[index+1:endIndex].strip()
+                amendmentNumber = 0
+                item = TenderAgreement()
+                item["tenderID"] = tenderID
+                item["AmendmentNumber"] = str(amendmentNumber)
                 
-                index = endIndex
-                endIndex = winnerDiv.find("<",index)
-                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
-              else:
-                index = winnerDiv.find("date",validityIndex)
-                index = winnerDiv.find(">",index)
-                endIndex = winnerDiv.find("</",index)
-                item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+                index = winnerDiv.find("ShowProfile")
+                index = winnerDiv.find("(",index)
+                endIndex = winnerDiv.find(")",index)
+                
+                orgUrl = winnerDiv[index+1:endIndex]
+                item["OrgUrl"] = orgUrl
+                        
+                index = winnerDiv.find(u"ნომერი/თანხა")
+                endIndex = winnerDiv.find("<br",index)
+                index = winnerDiv.rfind("/",index,endIndex)
+                item["Amount"] = winnerDiv[index+1:endIndex].strip()
+                
+                #there seem to be 2 different types of agreement date types
+                #one has a single Contract validity date and the other has a start and end date
+                dateRange = winnerDiv.find("-",index)
+                if dateRange > -1:
+                    index = winnerDiv.find(u"ძალაშია",index)
+                    index = winnerDiv.find(":",index)
+                    endIndex = winnerDiv.find("-",index)
+                    item["StartDate"] = winnerDiv[index+1:endIndex].strip()
+                    
+                    index = endIndex
+                    endIndex = winnerDiv.find("<",index)
+                    item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
+                else:
+                    """
+                     I think this never executed that's why it wasn't caught.
+                     Otherwise the dateRange should replace validityIndex
+                     """
+                    # index = winnerDiv.find("date",validityIndex)
+                    index = winnerDiv.find("date", dateRange)
+                    index = winnerDiv.find(">",index)
+                    endIndex = winnerDiv.find("</",index)
+                    item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
 
-              
-              #find the document download section
-              index = winnerDiv.find('align="right',index)
-              index = winnerDiv.find("href",index)
-              index = winnerDiv.find('"',index)+1
-              endIndex = winnerDiv.find('"',index)
-              item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
-
-              self.agreementCount = self.agreementCount + 1
-              yield item
             
-              #check for contract amendment
-              if resultsDividers.__len__() > 2:
+            #find the document download section
+            index = winnerDiv.find('align="right',index)
+            index = winnerDiv.find("href",index)
+            index = winnerDiv.find('"',index)+1
+            endIndex = winnerDiv.find('"',index)
+            item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
+
+            self.agreementCount = self.agreementCount + 1
+            yield item
+            
+            #check for contract amendment
+            if resultsDividers.__len__() > 2:
                 count = 0
                 for divider in resultsDividers:
-                  if count < 2:
-                    count = count + 1
-                    continue
-                  xAmendmentsTable = resultsDividersXPath[count]
-                  xAmendments = xAmendmentsTable.select('.//tr')               
-                  item = TenderAgreement()
-                  item["tenderID"] = tenderID
-                  #agreement change
-                  if divider.find(u"ხელშეკრულების ცვლილება") > -1 or divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1: 
-                    #extract all rows
-                    for row in xAmendments:
-                      amendmentHtml = row.extract()                
-                      amendmentNumber = amendmentNumber + 1
-                      item["AmendmentNumber"] = str(amendmentNumber)
-                      #should be the same org as the original contract
-                      item["OrgUrl"] = orgUrl
-                      self.agreementCount = self.agreementCount + 1
-                      index = amendmentHtml.find(u"ნომერი/თანხა")
-                      endIndex = amendmentHtml.find("<br",index)
-                      index = amendmentHtml.rfind("/",index,endIndex)
-                      item["Amount"] = amendmentHtml[index+1:endIndex].strip()
-                      
-                      index = amendmentHtml.find(u"ძალაშია",index)
-                      index = amendmentHtml.find(":",index)
-                      endIndex = amendmentHtml.find("-",index)
-                      item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-                      
-                      index = endIndex
-                      endIndex = amendmentHtml.find("<",index)
-                      item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
-                                         
-                      #error correction
-                      if divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
-                        item["documentUrl"] = "Treaty Correction: No Document"
-                      else:
-                        index = amendmentHtml.find('align="right',index)
-                        index = amendmentHtml.find("href",index)
-                        index = amendmentHtml.find('"',index)+1
-                        endIndex = amendmentHtml.find('"',index)
-                        item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
-                      yield item
-                  
-                  #disqualify (might be another company so the contract is still valid)
-                  elif divider.find(u"დისკვალიფიკაცია") > -1 or divider.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:        
-                    #extract all rows
-                    for row in xAmendments:
-                      amendmentHtml = row.extract()                    
-                      index = amendmentHtml.find("width")
-                      index = amendmentHtml.find(">",index)
-                      endIndex = amendmentHtml.find("</",index) 
-                      item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-
-                      index = amendmentHtml.find("strong",index)
-                      index = amendmentHtml.find(">",index)
-                      endIndex = amendmentHtml.find("</",index)
-                      item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
-                   
-                      item["Amount"] = "NULL"
-                      item["StartDate"] = "NULL"                                 
-                      item["ExpiryDate"] = "NULL"
-                   
-                      if divider.find(u"დისკვალიფიკაცია") > -1:
-                        item["documentUrl"] = "disqualified"
-                      else:
-                        item["documentUrl"] = "bidder refused agreement"
-                      
-                      yield item
-                  #unknown stuff
-                  else:
+                    if count < 2:
+                        count = count + 1
+                        continue
+                    xAmendmentsTable = resultsDividersXPath[count]
+                    xAmendments = xAmendmentsTable.select('.//tr')                 
                     item = TenderAgreement()
                     item["tenderID"] = tenderID
-                    item["AmendmentNumber"] = str(0)
-                    item["Amount"] = "-1"                             
-                    item["StartDate"] = "NULL"                            
-                    item["documentUrl"] = "unknown"
-                    item["OrgUrl"] = "NULL"
-                    item["ExpiryDate"] = "NULL"
+                    #agreement change
+                    if divider.find(u"ხელშეკრულების ცვლილება") > -1 or divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1: 
+                        #extract all rows
+                        for row in xAmendments:
+                            amendmentHtml = row.extract()                
+                            amendmentNumber = amendmentNumber + 1
+                            item["AmendmentNumber"] = str(amendmentNumber)
+                            #should be the same org as the original contract
+                            item["OrgUrl"] = orgUrl
+                            self.agreementCount = self.agreementCount + 1
+                            index = amendmentHtml.find(u"ნომერი/თანხა")
+                            endIndex = amendmentHtml.find("<br",index)
+                            index = amendmentHtml.rfind("/",index,endIndex)
+                            item["Amount"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                            index = amendmentHtml.find(u"ძალაშია",index)
+                            index = amendmentHtml.find(":",index)
+                            endIndex = amendmentHtml.find("-",index)
+                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                            index = endIndex
+                            endIndex = amendmentHtml.find("<",index)
+                            item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                                            
+                            #error correction
+                            if divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
+                                item["documentUrl"] = "Treaty Correction: No Document"
+                            else:
+                                index = amendmentHtml.find('align="right',index)
+                                index = amendmentHtml.find("href",index)
+                                index = amendmentHtml.find('"',index)+1
+                                endIndex = amendmentHtml.find('"',index)
+                                item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
+                            yield item
+                        
+                    #disqualify (might be another company so the contract is still valid)
+                    elif divider.find(u"დისკვალიფიკაცია") > -1 or divider.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:        
+                        #extract all rows
+                        for row in xAmendments:
+                            amendmentHtml = row.extract()                    
+                            index = amendmentHtml.find("width")
+                            index = amendmentHtml.find(">",index)
+                            endIndex = amendmentHtml.find("</",index) 
+                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+    
+                            index = amendmentHtml.find("strong",index)
+                            index = amendmentHtml.find(">",index)
+                            endIndex = amendmentHtml.find("</",index)
+                            item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
+                        
+                            item["Amount"] = "NULL"
+                            item["StartDate"] = "NULL"
+                            item["ExpiryDate"] = "NULL"
+                        
+                            if divider.find(u"დისკვალიფიკაცია") > -1:
+                                item["documentUrl"] = "disqualified"
+                            else:
+                                item["documentUrl"] = "bidder refused agreement"
+                            
+                            yield item
+                    #unknown stuff
+                    else:
+                        item = TenderAgreement()
+                        item["tenderID"] = tenderID
+                        item["AmendmentNumber"] = str(0)
+                        item["Amount"] = "-1"
+                        item["StartDate"] = "NULL"
+                        item["documentUrl"] = "unknown"
+                        item["OrgUrl"] = "NULL"
+                        item["ExpiryDate"] = "NULL"
                     yield item
-                  count = count + 1
-               
+                    count = count + 1
+                
     def parseBidsPage(self,response):
         #print "parsing bids"
         hxs = HtmlXPathSelector(response)
@@ -369,7 +391,7 @@ class ProcurementSpider(BaseSpider):
                     searchIndex = keyPair.find(condition,index)
                     if searchIndex == -1:
                         found = False
-                        break;
+                        break
                     prevIndex = index
                     index = searchIndex
                 if found:
@@ -384,7 +406,7 @@ class ProcurementSpider(BaseSpider):
         keyPairs = hxs.select('//tr/td').extract()
         toYield = []
         item = Tender()
-     
+    
         item['tenderID'] = response.meta['tenderUrl']
         conditions = "ShowProfile","(", ")"
         result = self.findData( keyPairs, conditions, -1 )
@@ -401,7 +423,7 @@ class ProcurementSpider(BaseSpider):
         item['tenderRegistrationNumber']  = self.findKeyValue( u"სატენდერო განცხადების ნომერი", keyPairs, conditions ).strip()
 
         conditions =  "img",">","<"
-	tenderStatusValue = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions )
+        tenderStatusValue = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions )
         if tenderStatusValue is None:
             item['tenderStatus']  = self.findKeyValue( u"ტენდერის სტატუსი", keyPairs, conditions ).strip()
         else:
@@ -415,12 +437,12 @@ class ProcurementSpider(BaseSpider):
         conditions = "span", ">", "<"
         val =  self.findKeyValue( u"შესყიდვის სავარაუდო ღირებულება", keyPairs, conditions )
         if val == None:
-          val =  self.findKeyValue( u"პრეისკურანტის სავარაუდო ღირებულება", keyPairs, conditions )
+            val =  self.findKeyValue( u"პრეისკურანტის სავარაუდო ღირებულება", keyPairs, conditions )
         item['estimatedValue'] = val.replace("`","").replace("GEL","").strip()
 
         conditions = "/strong",">","<"
         item['cpvCode'] =  self.findKeyValue( u"შესყიდვის კატეგორია", keyPairs, conditions ).strip()
-      
+    
         conditions = "blabla",">","</"
         item['info'] =  self.findKeyValue( u"დამატებითი ინფორმაცია", keyPairs, conditions ).strip()
         
@@ -436,10 +458,10 @@ class ProcurementSpider(BaseSpider):
 
         period = self.findKeyValue( u"გარანტიის მოქმედების ვადა", keyPairs, conditions )
         if period is not None:
-          item['guaranteePeriod'] = period.strip()
+            item['guaranteePeriod'] = period.strip()
         else:
-          item['guaranteePeriod'] = "NO"
-          
+            item['guaranteePeriod'] = "NO"
+        
         toYield.append(item)
 
         #the sub cpv codes are within a list so we will deal with these seperately
@@ -448,17 +470,17 @@ class ProcurementSpider(BaseSpider):
         cpvItems = hxs.select('//div/ul/li').extract()
 
         for cpvItem in cpvItems:
-          if cpvItem.find("padding:4px") > -1:
-            startIndex = cpvItem.find(">")
-            endIndex = cpvItem.find("-",startIndex)
-            cpvCode = cpvItem[startIndex+6:endIndex]
-            descriptionEnd = cpvItem.find("<div",endIndex)
-            description = cpvItem[endIndex+1:descriptionEnd]
-            cpvObject = CPVCode()
-            cpvObject['tenderID'] = item['tenderID']
-            cpvObject['cpvCode'] = cpvCode.strip()
-            cpvObject['description'] = description.strip()
-            toYield.append(cpvObject)
+            if cpvItem.find("padding:4px") > -1:
+                startIndex = cpvItem.find(">")
+                endIndex = cpvItem.find("-",startIndex)
+                cpvCode = cpvItem[startIndex+6:endIndex]
+                descriptionEnd = cpvItem.find("<div",endIndex)
+                description = cpvItem[endIndex+1:descriptionEnd]
+                cpvObject = CPVCode()
+                cpvObject['tenderID'] = item['tenderID']
+                cpvObject['cpvCode'] = cpvCode.strip()
+                cpvObject['description'] = description.strip()
+                toYield.append(cpvObject)
             
     
         #now lets use the procuring entity id to find more info about the procurer
@@ -485,7 +507,7 @@ class ProcurementSpider(BaseSpider):
         results_request = Request(url, errback=self.resultFailed,callback=self.parseResultsPage,cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         results_request.meta['tenderID'] = item['tenderID']
         toYield.append(results_request)   
-  
+
         return toYield
         
     def parseTenderUrls(self, response):
@@ -511,7 +533,7 @@ class ProcurementSpider(BaseSpider):
             
             #if this is the first page store the first tender as a marker so the incremental scraper knows where to stop.
             if page == 1 and first:
-              self.firstTender = index_url
+                self.firstTender = index_url
             first = False
             yield request
             
@@ -524,403 +546,402 @@ class ProcurementSpider(BaseSpider):
 
 
     def parseWhiteListItem(self, response):
-      hxs = HtmlXPathSelector(response)
-      nameDiv = hxs.select('//div[@class="txt_page"]//div[@class="name"]').extract()[0]
-      dateDiv = hxs.select('//div[@class="txt_page"]//div[@class="indate"]').extract()[0]
-      infoDivs = hxs.select('//div[@class="txt_page"]//div[@class="txt"]//a').extract()
-      listDocumentDiv = infoDivs[0]
-      companyDocDiv = infoDivs[1]
+        hxs = HtmlXPathSelector(response)
+        nameDiv = hxs.select('//div[@class="txt_page"]//div[@class="name"]').extract()[0]
+        dateDiv = hxs.select('//div[@class="txt_page"]//div[@class="indate"]').extract()[0]
+        infoDivs = hxs.select('//div[@class="txt_page"]//div[@class="txt"]//a').extract()
+        listDocumentDiv = infoDivs[0]
+        companyDocDiv = infoDivs[1]
 
-      startIndex = nameDiv.find(">")
-      endIndex = nameDiv.find("(",startIndex)
-      name = nameDiv[startIndex+1:endIndex]
+        startIndex = nameDiv.find(">")
+        endIndex = nameDiv.find("(",startIndex)
+        name = nameDiv[startIndex+1:endIndex]
 
-      startIndex = nameDiv.find(":",endIndex)
-      endIndex = nameDiv.find(")",startIndex)
-      orgID = nameDiv[startIndex+1:endIndex]
+        startIndex = nameDiv.find(":",endIndex)
+        endIndex = nameDiv.find(")",startIndex)
+        orgID = nameDiv[startIndex+1:endIndex]
 
-      startIndex = dateDiv.find(">")
-      startIndex = dateDiv.find(":",startIndex)
-      endIndex = dateDiv.find("<",startIndex)
-      date = dateDiv[startIndex+1:endIndex]
+        startIndex = dateDiv.find(">")
+        startIndex = dateDiv.find(":",startIndex)
+        endIndex = dateDiv.find("<",startIndex)
+        date = dateDiv[startIndex+1:endIndex]
 
-      startIndex = listDocumentDiv.find("href")
-      startIndex = listDocumentDiv.find("=",startIndex)
-      endIndex = listDocumentDiv.find("target",startIndex)
-      listDocumentUrl = listDocumentDiv[startIndex+1:endIndex]
+        startIndex = listDocumentDiv.find("href")
+        startIndex = listDocumentDiv.find("=",startIndex)
+        endIndex = listDocumentDiv.find("target",startIndex)
+        listDocumentUrl = listDocumentDiv[startIndex+1:endIndex]
 
-      startIndex = companyDocDiv.find("href")
-      startIndex = companyDocDiv.find("=",startIndex)
-      endIndex = companyDocDiv.find("target",startIndex)
-      companyDocUrl = companyDocDiv[startIndex+1:endIndex]
+        startIndex = companyDocDiv.find("href")
+        startIndex = companyDocDiv.find("=",startIndex)
+        endIndex = companyDocDiv.find("target",startIndex)
+        companyDocUrl = companyDocDiv[startIndex+1:endIndex]
 
-      item = WhiteListObject()
-      item['orgID'] = orgID.strip()
-      item['orgName'] = name.strip()
-      item['issueDate'] = date.strip()
-      item['agreementUrl'] = listDocumentUrl.strip()
-      item['companyInfoUrl'] = companyDocUrl.strip()
-      yield item   
+        item = WhiteListObject()
+        item['orgID'] = orgID.strip()
+        item['orgName'] = name.strip()
+        item['issueDate'] = date.strip()
+        item['agreementUrl'] = listDocumentUrl.strip()
+        item['companyInfoUrl'] = companyDocUrl.strip()
+        yield item     
 
     def parseBlackListItem(self, response):
-      hxs = HtmlXPathSelector(response)
-      nameDiv = hxs.select('//div[@class="txt_page"]//div[@class="name"]').extract()[0]
-      dateDiv = hxs.select('//div[@class="txt_page"]//div[@class="indate"]').extract()[0]
-      info = hxs.select('//div[@class="txt_page"]//div[@class="txt"]').extract()[0]
-      count = 0
-      found = False
+        hxs = HtmlXPathSelector(response)
+        nameDiv = hxs.select('//div[@class="txt_page"]//div[@class="name"]').extract()[0]
+        dateDiv = hxs.select('//div[@class="txt_page"]//div[@class="indate"]').extract()[0]
+        info = hxs.select('//div[@class="txt_page"]//div[@class="txt"]').extract()[0]
+        #count = 0
+        found = False
 
-      startIndex = nameDiv.find(">")
-      endIndex = nameDiv.find("(",startIndex)
-      name = nameDiv[startIndex+1:endIndex]
-      startIndex = nameDiv.find(":",endIndex)
-      endIndex = nameDiv.find(")",startIndex)
-      orgID = nameDiv[startIndex+1:endIndex]
+        startIndex = nameDiv.find(">")
+        endIndex = nameDiv.find("(",startIndex)
+        name = nameDiv[startIndex+1:endIndex]
+        startIndex = nameDiv.find(":",endIndex)
+        endIndex = nameDiv.find(")",startIndex)
+        orgID = nameDiv[startIndex+1:endIndex]
 
-      startIndex = dateDiv.find(">")
-      startIndex = dateDiv.find(":",startIndex)
-      endIndex = dateDiv.find("<",startIndex)
-      date = dateDiv[startIndex+1:endIndex]
+        startIndex = dateDiv.find(">")
+        startIndex = dateDiv.find(":",startIndex)
+        endIndex = dateDiv.find("<",startIndex)
+        date = dateDiv[startIndex+1:endIndex]
 
-      startIndex = info.find(u"ორგანიზაცია")
-      startIndex = info.find(":",startIndex)
-      endIndex = info.find(";",startIndex)
-      procurer = info[startIndex+1:endIndex]
+        startIndex = info.find(u"ორგანიზაცია")
+        startIndex = info.find(":",startIndex)
+        endIndex = info.find(";",startIndex)
+        procurer = info[startIndex+1:endIndex]
 
-      tenderNum = "NULL"
-      tenderSearchStr = "SPA"
-      #to fix a data entry bug on the procurement side
-      if info.find(u"შPA") > -1:
-        tenderSearchStr = u"შPA"
-      startIndex = info.find(tenderSearchStr)
-      if startIndex == -1:
-        tenderID = "NULL"
+        tenderNum = "NULL"
+        tenderSearchStr = "SPA"
+        #to fix a data entry bug on the procurement side
+        if info.find(u"შPA") > -1:
+            tenderSearchStr = u"შPA"
+        startIndex = info.find(tenderSearchStr)
+        if startIndex == -1:
+            tenderID = "NULL"
         startIndex = info.find(u"№")
         endIndex = info.find(";",startIndex)
         if startIndex == -1:
-          tenderNum = info[startIndex:endIndex]
-      else:
-        finished = False
-        tenderID = ""
-        found = True
-        while found:
-          startIndex = info.find(tenderSearchStr,startIndex)
-          if startIndex == -1:
-            break
-          endIndex = info.find("</a",startIndex)
-          spaID = info[startIndex:endIndex].replace(u"შ","S")
-          tenderID += spaID + ","
-          startIndex = endIndex
+            tenderNum = info[startIndex:endIndex]
+        else:
+            #finished = False
+            tenderID = ""
+            found = True
+            while found:
+                startIndex = info.find(tenderSearchStr,startIndex)
+                if startIndex == -1:
+                    break
+                endIndex = info.find("</a",startIndex)
+                spaID = info[startIndex:endIndex].replace(u"შ","S")
+                tenderID += spaID + ","
+                startIndex = endIndex
 
-      startIndex = info.find(u"შავ სიაში რეგისტრაციის მიზეზი")
-      startIndex = info.find(":",startIndex)
-      endIndex = info.find("<",startIndex)
-      reason = info[startIndex+1:endIndex]
+        startIndex = info.find(u"შავ სიაში რეგისტრაციის მიზეზი")
+        startIndex = info.find(":",startIndex)
+        endIndex = info.find("<",startIndex)
+        reason = info[startIndex+1:endIndex]
 
-      item = BlackListObject()
-      item['orgID'] = orgID.strip()
-      item['orgName'] = name.strip()
-      item['issueDate'] = date.strip()
-      item['procurer'] = procurer.strip()
-      item['tenderID'] = tenderID.strip()
-      item['tenderNum'] = tenderNum.strip()
-      item['reason'] = reason.strip()
-      yield item  
-   
+        item = BlackListObject()
+        item['orgID'] = orgID.strip()
+        item['orgName'] = name.strip()
+        item['issueDate'] = date.strip()
+        item['procurer'] = procurer.strip()
+        item['tenderID'] = tenderID.strip()
+        item['tenderNum'] = tenderNum.strip()
+        item['reason'] = reason.strip()
+        yield item    
+    
 
     def parseWhiteListUrls(self, response):
-      hxs = HtmlXPathSelector(response)
-      print "Parsing White List Page" + str(response.meta["page"])
-      #find last page if needed
-      final_page = response.meta["final_page"]
-      if final_page == -1:
-        pageLinks = hxs.select('//div[@class="pager"]//a').extract()
-        lastLink = pageLinks[-1]
-        startIndex = lastLink.find("entrant")
-        startIndex = lastLink.find("=",startIndex)
-        endIndex = lastLink.find('&',startIndex)
-        final_page = int(lastLink[startIndex+1:endIndex])
-   
-      whiteListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
-      #generate requests for each link
-      for link in whiteListLinks:
-        startIndex = link.find("info_id")
-        startIndex = link.find("=",startIndex)
-        endIndex = link.find(">",startIndex)
-        itemID = link[startIndex+1:endIndex-1]
-        url = self.baseListUrl+self.whiteListItemUrl+str(itemID)
-        request = Request(url,callback=self.parseWhiteListItem, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
+        hxs = HtmlXPathSelector(response)
+        print "Parsing White List Page" + str(response.meta["page"])
+        #find last page if needed
+        final_page = response.meta["final_page"]
+        if final_page == -1:
+            pageLinks = hxs.select('//div[@class="pager"]//a').extract()
+            lastLink = pageLinks[-1]
+            startIndex = lastLink.find("entrant")
+            startIndex = lastLink.find("=",startIndex)
+            endIndex = lastLink.find('&',startIndex)
+            final_page = int(lastLink[startIndex+1:endIndex])
+
+        whiteListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
+        #generate requests for each link
+        for link in whiteListLinks:
+            startIndex = link.find("info_id")
+            startIndex = link.find("=",startIndex)
+            endIndex = link.find(">",startIndex)
+            itemID = link[startIndex+1:endIndex-1]
+            url = self.baseListUrl+self.whiteListItemUrl+str(itemID)
+            request = Request(url,callback=self.parseWhiteListItem, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
         
-      #yield a new request to get the next page
-      nextPage = response.meta["page"] + 1
-      if nextPage <= final_page:
-        metadata = {"page" : nextPage, "final_page" : final_page}
-        url = self.baseListUrl+self.whiteListUrl+str(nextPage)
-        request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request    
+        #yield a new request to get the next page
+        nextPage = response.meta["page"] + 1
+        if nextPage <= final_page:
+            metadata = {"page" : nextPage, "final_page" : final_page}
+            url = self.baseListUrl+self.whiteListUrl+str(nextPage)
+            request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request    
 
     def parseBlackListUrls(self, response):
-      hxs = HtmlXPathSelector(response)
-      print "Parsing Black List Page " + str(response.meta["page"])
-      #find last page if needed
-      final_page = response.meta["final_page"]
-      if final_page == -1:
-        pageLinks = hxs.select('//div[@class="pager"]//a').extract()
-        lastLink = pageLinks[-1]
-        startIndex = lastLink.find("entrant")
-        startIndex = lastLink.find("=",startIndex)
-        endIndex = lastLink.find('&',startIndex)
-        final_page = int(lastLink[startIndex+1:endIndex])
-   
-      blackListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
-      for link in blackListLinks:
-        startIndex = link.find("info_id")
-        startIndex = link.find("=",startIndex)
-        endIndex = link.find(">",startIndex)
-        itemID = link[startIndex+1:endIndex-1]
-        url = self.baseListUrl+self.blackListItemUrl+str(itemID)
-        request = Request(url,callback=self.parseBlackListItem, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
+        hxs = HtmlXPathSelector(response)
+        print "Parsing Black List Page " + str(response.meta["page"])
+        #find last page if needed
+        final_page = response.meta["final_page"]
+        if final_page == -1:
+            pageLinks = hxs.select('//div[@class="pager"]//a').extract()
+            lastLink = pageLinks[-1]
+            startIndex = lastLink.find("entrant")
+            startIndex = lastLink.find("=",startIndex)
+            endIndex = lastLink.find('&',startIndex)
+            final_page = int(lastLink[startIndex+1:endIndex])
+    
+        blackListLinks = hxs.select('//div[@class="right_block_cont"]//div[@class="right_block_text"]//a').extract()
+        for link in blackListLinks:
+            startIndex = link.find("info_id")
+            startIndex = link.find("=",startIndex)
+            endIndex = link.find(">",startIndex)
+            itemID = link[startIndex+1:endIndex-1]
+            url = self.baseListUrl+self.blackListItemUrl+str(itemID)
+            request = Request(url,callback=self.parseBlackListItem, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
         
-      #yield a new request to get the next page
-      nextPage = response.meta["page"] + 1
-      if nextPage <= final_page:
-        metadata = {"page" : nextPage, "final_page" : final_page}
-        url = self.baseListUrl+self.blackListUrl+str(nextPage)
-        request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request 
+        #yield a new request to get the next page
+        nextPage = response.meta["page"] + 1
+        if nextPage <= final_page:
+            metadata = {"page" : nextPage, "final_page" : final_page}
+            url = self.baseListUrl+self.blackListUrl+str(nextPage)
+            request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request 
 
     def getDataByLabel(self, label, divs ):
-      count = 0
-      dataIndex = -1
-      for div in divs:   
-        if div.find(label) > -1:
-          dataIndex = count + 1
-          break
-        count += 1
-      if dataIndex == -1:
-        return NULL
-      else:
-        return divs[dataIndex]
+        count = 0
+        dataIndex = -1
+        for div in divs:     
+            if div.find(label) > -1:
+                dataIndex = count + 1
+                break
+            count += 1
+        if dataIndex == -1:
+            return None
+        else:
+            return divs[dataIndex]
 
     def parseDispute(self, response):
-      hxs = HtmlXPathSelector(response)
-      divs = hxs.select('//div[@class="claim ui-corner-all"]//div').extract()
-      lastClaimDiv = hxs.select('//div[@class="claim ui-corner-all"]').extract()[-1]
+        hxs = HtmlXPathSelector(response)
+        divs = hxs.select('//div[@class="claim ui-corner-all"]//div').extract()
+        lastClaimDiv = hxs.select('//div[@class="claim ui-corner-all"]').extract()[-1]
 
-      item = Complaint()
+        item = Complaint()
 
-      statusDiv = self.getDataByLabel(u"საჩივრის მიმდინარე სტატუსი",divs)
-      startIndex = statusDiv.find("img")
-      startIndex = statusDiv.find(">",startIndex)
-      endIndex = statusDiv.find("</",startIndex)
-      item["status"] = statusDiv[startIndex+1:endIndex]
+        statusDiv = self.getDataByLabel(u"საჩივრის მიმდინარე სტატუსი",divs)
+        startIndex = statusDiv.find("img")
+        startIndex = statusDiv.find(">",startIndex)
+        endIndex = statusDiv.find("</",startIndex)
+        item["status"] = statusDiv[startIndex+1:endIndex]
 
-      organizationDiv = self.getDataByLabel(u"მომჩივანი",divs)
-      startIndex = organizationDiv.find("strong>")
-      startIndex = organizationDiv.find(">",startIndex)
-      endIndex = organizationDiv.find("</")
-      item["orgName"] = organizationDiv[startIndex+1:endIndex]
+        organizationDiv = self.getDataByLabel(u"მომჩივანი",divs)
+        startIndex = organizationDiv.find("strong>")
+        startIndex = organizationDiv.find(">",startIndex)
+        endIndex = organizationDiv.find("</")
+        item["orgName"] = organizationDiv[startIndex+1:endIndex]
 
-      startIndex = organizationDiv.find("(",startIndex)
-      endIndex = organizationDiv.find(")",startIndex)
-      item["orgID"] = organizationDiv[startIndex+1:endIndex]
+        startIndex = organizationDiv.find("(",startIndex)
+        endIndex = organizationDiv.find(")",startIndex)
+        item["orgID"] = organizationDiv[startIndex+1:endIndex]
 
-      tenderDiv = self.getDataByLabel(u"სადავო",divs)
-      startIndex = tenderDiv.find("strong>")
-      startIndex = tenderDiv.find(">",startIndex)
-      endIndex = tenderDiv.find("</",startIndex)
-      item["tenderID"] = tenderDiv[startIndex+1:endIndex]
+        tenderDiv = self.getDataByLabel(u"სადავო",divs)
+        startIndex = tenderDiv.find("strong>")
+        startIndex = tenderDiv.find(">",startIndex)
+        endIndex = tenderDiv.find("</",startIndex)
+        item["tenderID"] = tenderDiv[startIndex+1:endIndex]
 
-      complaintDiv = self.getDataByLabel(u"საჩივრის არსი",divs)
-      startIndex = complaintDiv.find(">")
-      endIndex = complaintDiv.find("</")
-      item["complaint"] = complaintDiv[startIndex+1:endIndex]
+        complaintDiv = self.getDataByLabel(u"საჩივრის არსი",divs)
+        startIndex = complaintDiv.find(">")
+        endIndex = complaintDiv.find("</")
+        item["complaint"] = complaintDiv[startIndex+1:endIndex]
 
-      legalBasisDiv = self.getDataByLabel(u"საჩივრის სამართლებრივი საფუძვლები",divs)
-      startIndex = legalBasisDiv.find("<li>")
-      startIndex = legalBasisDiv.find("</div",startIndex)
-      startIndex = legalBasisDiv.find(">",startIndex)
-      endIndex = legalBasisDiv.find("</li",startIndex)
-      item["legalBasis"] = legalBasisDiv[startIndex+1:endIndex]
+        legalBasisDiv = self.getDataByLabel(u"საჩივრის სამართლებრივი საფუძვლები",divs)
+        startIndex = legalBasisDiv.find("<li>")
+        startIndex = legalBasisDiv.find("</div",startIndex)
+        startIndex = legalBasisDiv.find(">",startIndex)
+        endIndex = legalBasisDiv.find("</li",startIndex)
+        item["legalBasis"] = legalBasisDiv[startIndex+1:endIndex]
 
-      demandDiv = self.getDataByLabel(u"მოთხოვნა",divs)
-      startIndex = demandDiv.find(">")
-      endIndex = demandDiv.find("</",startIndex)
-      item["demand"] = demandDiv[startIndex+1:endIndex]
+        demandDiv = self.getDataByLabel(u"მოთხოვნა",divs)
+        startIndex = demandDiv.find(">")
+        endIndex = demandDiv.find("</",startIndex)
+        item["demand"] = demandDiv[startIndex+1:endIndex]
 
-      startIndex = lastClaimDiv.find(u"სტატუსების ისტორია")
-      endIndex = lastClaimDiv.find(u"საჩივარი შემოსულია", startIndex)
-      endIndex = lastClaimDiv.rfind("</td",startIndex,endIndex)
-      startIndex = lastClaimDiv.rfind("<td",startIndex,endIndex)
-      startIndex = lastClaimDiv.find(">",startIndex,endIndex)
-      item["issueDate"] = lastClaimDiv[startIndex+1:endIndex]
-      
-      yield item
+        startIndex = lastClaimDiv.find(u"სტატუსების ისტორია")
+        endIndex = lastClaimDiv.find(u"საჩივარი შემოსულია", startIndex)
+        endIndex = lastClaimDiv.rfind("</td",startIndex,endIndex)
+        startIndex = lastClaimDiv.rfind("<td",startIndex,endIndex)
+        startIndex = lastClaimDiv.find(">",startIndex,endIndex)
+        item["issueDate"] = lastClaimDiv[startIndex+1:endIndex]
+        
+        yield item
 
     def parseDisputeLinks(self, response):
-      hxs = HtmlXPathSelector(response)
-      disputeLinks = hxs.select('//td[@title]').extract()
-      #get disputeID
-      for link in disputeLinks:
-        startIndex = link.find("=")
-        endIndex = link.find(">")
-        linkID = link[startIndex+1:endIndex]
-        linkID = linkID.replace('"','')
-        url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=showapp&app_id="+linkID
-        print url
-        request = Request(url,callback=self.parseDispute, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
+        hxs = HtmlXPathSelector(response)
+        disputeLinks = hxs.select('//td[@title]').extract()
+        #get disputeID
+        for link in disputeLinks:
+            startIndex = link.find("=")
+            endIndex = link.find(">")
+            linkID = link[startIndex+1:endIndex]
+            linkID = linkID.replace('"','')
+            url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=showapp&app_id="+linkID
+            print url
+            request = Request(url,callback=self.parseDispute, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
 
     def getLastScrapedTender(self):
-      #find where the last scrape left off
-      scrapeList = []
-      currentDir = os.getcwd()
-      if os.path.exists("FullScrapes"):
-          fullScrapes = os.listdir("FullScrapes")
-          
-      if os.path.exists("IncrementalScrapes"):
-          incrementalScrapes = os.listdir("IncrementalScrapes")
-      scrapeList = fullScrapes + incrementalScrapes
-      #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
-      scrapeList.sort()
-      lastTenderURL = -1
-      while lastTenderURL == -1 and scrapeList.count > 0:
-          last = scrapeList.pop()
-          typeDir = "IncrementalScrapes"
-          if fullScrapes.__contains__(last):
-              typeDir = "FullScrapes"
-              
-          lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
-          
-          while 1:
-              line = lastScrapeInfo.readline()
-              if not line:
-                  break
-              index = line.find("firstTenderURL")
-              if index > -1:
-                  index = line.find(":")
-                  lastTenderURL = line[index+2:]
-                  break
-      return lastTenderURL   
+        #find where the last scrape left off
+        #scrapeList = []
+        currentDir = os.getcwd()
+        if os.path.exists("FullScrapes"):
+            fullScrapes = os.listdir("FullScrapes")
+            
+        if os.path.exists("IncrementalScrapes"):
+            incrementalScrapes = os.listdir("IncrementalScrapes")
+        scrapeList = fullScrapes + incrementalScrapes
+        #now we have a list of old scrape directories lets find the most recent one and find the first tender it scraped
+        scrapeList.sort()
+        lastTenderURL = -1
+        while lastTenderURL == -1 and scrapeList.count > 0:
+            last = scrapeList.pop()
+            typeDir = "IncrementalScrapes"
+            if fullScrapes.__contains__(last):
+                typeDir = "FullScrapes"
+                
+            lastScrapeInfo = open(currentDir+"/"+typeDir+"/"+last+"/"+"scrapeInfo.txt")
+            
+            while 1:
+                line = lastScrapeInfo.readline()
+                if not line:
+                    break
+                index = line.find("firstTenderURL")
+                if index > -1:
+                    index = line.find(":")
+                    lastTenderURL = line[index+2:]
+                    break
+        return lastTenderURL     
 
     #spider start point
     def parse(self, response):
-      #if we are fixing errors from a previous scrape
-      if self.scrapeMode == "FIXERRORS":
-        self.firstTender = -1
-        tender_url = "action=app_main&app_id="
-        org_url = "action=profile&org_id="
-        bidder_url = "action=app_bids&app_id="
-        agreement_url = "action=agency_docs&app_id="
-        document_url = "action=app_docs&app_id=" 
-
-        failPath = self.fixpath+"/failures.txt"
-        failFile = open(failPath, 'r')
-        for item_url in failFile:
-          if item_url.find(tender_url) > -1:
-            index = item_url.find("app_id")
-            index = item_url.find("=",index)  
-            index_url = item_url[index+1:]
-            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": index_url},headers={"User-Agent":self.userAgent})
-            print "tender: "+item_url
-            yield request
-          elif item_url.find(org_url) > -1:
-            index = item_url.find("org_id")
-            index = item_url.find("=",index)
-            org_url = item_url[index+1:]
-            metaData = {'OrgUrl': org_url,'type': "procuringOrg"}
-            request = Request(item_url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-            print "org: "+org_url
-            yield request
-          elif item_url.find(bidder_url) > -1:
-            index = item_url.find("app_id")
-            index = item_url.find("=",index)
-            tender_id = item_url[index+1:]
-            request = Request(item_url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-            request.meta['tenderID'] = tender_id
-            print "bid: "+tender_id
-            yield request
-          elif item_url.find(agreement_url) > -1:
-            index = item_url.find("app_id")
-            index = item_url.find("=",index)
-            tender_id = item_url[index+1:]
-            request = Request(item_url, errback=self.resultFailed,callback=self.parseResultsPage,cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-            request.meta['tenderID'] = tender_id
-            print "agree: "+tender_id
-            yield request
-          elif item_url.find(document_url) > -1:
-            index = item_url.find("app_id")
-            index = item_url.find("=",index)
-            tender_id = item_url[index+1:]
-            documentation_request = Request(item_url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-            documentation_request.meta['tenderID'] = tender_id
-            print "doc: "+tender_id
-            yield request 
-        failFile.close()
-          
-        
-      #if we are doing a single tender test scrape
-      elif self.scrapeMode == "SINGLE":
-        url_id = self.scrapeMode
-        tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
-        self.firstTender = self.scrapeMode
-        request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
-        yield request
-                  
-      else:  
-        #Find index of last page
-        hxs = HtmlXPathSelector(response)
-        totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
-        
-        index = totalPagesButton.find('/')
-        endIndex = totalPagesButton.find(')',index)
-        final_page = totalPagesButton[index+1:endIndex]
-        
-        if( final_page == -1 ):
-            #print "Parsing Error... stopping"
-            return
-        
-        lastTenderURL = -1
-        if self.scrapeMode == "INCREMENTAL":
-          lastTenderURL = self.getLastScrapedTender()
-
-        print "Starting scrape"
-        startPage = 1
-        url = self.mainPageBaseUrl+str(startPage)
-        metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
-        request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
-      
-        #now that we have queued up the scrape to find new tenders lets go through our inProgress list and scrape for updates
-        if self.scrapeMode == False: #"INCREMENTAL":
-          updatesFile = open(self.tenderUpdatesFile, 'r')
-          for url_id in updatesFile:
-            item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id.replace("\n","")
-            request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
-            print "update tender: "+item_url
-            yield request
-   
-        #parse white/black/disputes lists
-        metadata = {"page" : 1, "final_page" : -1}
-        print "scraping white list"
-        url = self.baseListUrl+self.whiteListUrl+str(1)
-        request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
-        yield request
+        #if we are fixing errors from a previous scrape
+        if self.scrapeMode == "FIXERRORS":
+            self.firstTender = -1
+            tender_url = "action=app_main&app_id="
+            org_url = "action=profile&org_id="
+            bidder_url = "action=app_bids&app_id="
+            agreement_url = "action=agency_docs&app_id="
+            document_url = "action=app_docs&app_id=" 
+    
+            failPath = self.fixpath+"/failures.txt"
+            failFile = open(failPath, 'r')
+            for item_url in failFile:
+                if item_url.find(tender_url) > -1:
+                    index = item_url.find("app_id")
+                    index = item_url.find("=",index)    
+                    index_url = item_url[index+1:]
+                    request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": index_url},headers={"User-Agent":self.userAgent})
+                    print "tender: "+item_url
+                    yield request
+                elif item_url.find(org_url) > -1:
+                    index = item_url.find("org_id")
+                    index = item_url.find("=",index)
+                    org_url = item_url[index+1:]
+                    metaData = {'OrgUrl': org_url,'type': "procuringOrg"}
+                    request = Request(item_url, errback=self.orgFailed, meta=metaData, callback=self.parseOrganisation, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+                    print "org: "+org_url
+                    yield request
+                elif item_url.find(bidder_url) > -1:
+                    index = item_url.find("app_id")
+                    index = item_url.find("=",index)
+                    tender_id = item_url[index+1:]
+                    request = Request(item_url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+                    request.meta['tenderID'] = tender_id
+                    print "bid: "+tender_id
+                    yield request
+                elif item_url.find(agreement_url) > -1:
+                    index = item_url.find("app_id")
+                    index = item_url.find("=",index)
+                    tender_id = item_url[index+1:]
+                    request = Request(item_url, errback=self.resultFailed,callback=self.parseResultsPage,cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+                    request.meta['tenderID'] = tender_id
+                    print "agree: "+tender_id
+                    yield request
+                elif item_url.find(document_url) > -1:
+                    index = item_url.find("app_id")
+                    index = item_url.find("=",index)
+                    tender_id = item_url[index+1:]
+                    documentation_request = Request(item_url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+                    documentation_request.meta['tenderID'] = tender_id
+                    print "doc: "+tender_id
+                    yield request 
+            failFile.close()
                 
-        print "scraping black list"
-        url = self.baseListUrl+self.blackListUrl+str(1)
-        request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
+        
+        #if we are doing a single tender test scrape
+        elif self.scrapeMode == "SINGLE":
+            url_id = self.scrapeMode
+            tender_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id
+            self.firstTender = self.scrapeMode
+            request = Request(tender_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
+            yield request
+                        
+        else:    
+            #Find index of last page
+            hxs = HtmlXPathSelector(response)
+            totalPagesButton = hxs.select('//div[@class="pager pad4px"]//button').extract()[2]
+            
+            index = totalPagesButton.find('/')
+            endIndex = totalPagesButton.find(')',index)
+            final_page = totalPagesButton[index+1:endIndex]
+            
+            if( final_page == -1 ):
+                #print "Parsing Error... stopping"
+                return
+            
+            lastTenderURL = -1
+            if self.scrapeMode == "INCREMENTAL":
+                lastTenderURL = self.getLastScrapedTender()
+    
+            print "Starting scrape"
+            startPage = 1
+            url = self.mainPageBaseUrl+str(startPage)
+            metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
+            request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
+            
+            #now that we have queued up the scrape to find new tenders lets go through our inProgress list and scrape for updates
+            if self.scrapeMode == False: #"INCREMENTAL":
+                updatesFile = open(self.tenderUpdatesFile, 'r')
+                for url_id in updatesFile:
+                    item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id.replace("\n","")
+                    request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
+                    print "update tender: "+item_url
+                    yield request
+    
+            #parse white/black/disputes lists
+            metadata = {"page" : 1, "final_page" : -1}
+            print "scraping white list"
+            url = self.baseListUrl+self.whiteListUrl+str(1)
+            request = Request(url,callback=self.parseWhiteListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})     
+            yield request
+                    
+            print "scraping black list"
+            url = self.baseListUrl+self.blackListUrl+str(1)
+            request = Request(url,callback=self.parseBlackListUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
+    
+            print "scraping disputes"
+            url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
+            request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+            yield request
 
-        print "scraping disputes"
-        url = "https://tenders.procurement.gov.ge/dispute/engine/controller.php?action=search_app&page=1&pp=9999999"
-        request = Request(url,callback=self.parseDisputeLinks, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
-        yield request
-
-
-#ERROR HANDLING SECTION#
+    #ERROR HANDLING SECTION#
     def urlPageFailed(self,error):
         print "urlpager failed"
         yield error.request
@@ -946,73 +967,77 @@ class ProcurementSpider(BaseSpider):
         print "org failed failed"
         requestFailure = [self.parseOrganisation, error.request.url]
         self.failedRequests.append(requestFailure)
+        
 def main():
     # shut off log
     #from scrapy.conf import settings
     settings = get_project_settings()
-    settings.overrides['LOG_ENABLED'] = False
- 
+    #settings.overrides['LOG_ENABLED'] = False
+    settings.set('LOG_ENABLED', True)
+
     # set up crawler
-    from scrapy.crawler import CrawlerProcess
-     
-    crawler = CrawlerProcess(settings)
+    from scrapy.crawler import Crawler
+    
+    crawler = Crawler(settings)
     crawler.install()
     crawler.configure()
- 
+    
     def getSPACookies():
-      #first get cookie from dummy request
-      http = httplib2.Http()
-      url = "https://tenders.procurement.gov.ge/public/?go=1000"
-      headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
-      response, content = http.request(url, 'POST', headers=headers)
-      cookies = {}
-      if( response['set-cookie'] ):
-          cookieString = response['set-cookie']
-          print "COOKIE"
-          print cookieString
-          index = cookieString.find('SPALITE')
-          index = cookieString.find("=",index)
-          endIndex = cookieString.find(';',index)
-          spaLite = cookieString[index+1:endIndex]
-          cookies["SPALITE"] = spaLite
-      
-      url = "https://tenders.procurement.gov.ge/dispute/"
-      headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
-      response, content = http.request(url, 'POST', headers=headers)
-      if( response['set-cookie'] ):
-          cookieString = response['set-cookie']
-          print cookieString
-          index = cookieString.find('DAVEBI')
-          index = cookieString.find("=",index)
-          endIndex = cookieString.find(';',index)
-          davebi = cookieString[index+1:endIndex]
-          cookies["DAVEBI"] = davebi
-      return cookies
+        #first get cookie from dummy request
+        http = httplib2.Http()
+        url = "https://tenders.procurement.gov.ge/public/?go=1000"
+        headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
+        # response, content = http.request(url, 'POST', headers=headers)
+        response, _ = http.request(url, 'POST', headers=headers)
+        cookies = {}
+        if( response['set-cookie'] ):
+            cookieString = response['set-cookie']
+            print "COOKIE"
+            print cookieString
+            index = cookieString.find('SPALITE')
+            index = cookieString.find("=",index)
+            endIndex = cookieString.find(';',index)
+            spaLite = cookieString[index+1:endIndex]
+            cookies["SPALITE"] = spaLite
+        
+        url = "https://tenders.procurement.gov.ge/dispute/"
+        headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
+        # response, content = http.request(url, 'POST', headers=headers)
+        response, _ = http.request(url, 'POST', headers=headers)
+        if( response['set-cookie'] ):
+            cookieString = response['set-cookie']
+            print cookieString
+            index = cookieString.find('DAVEBI')
+            index = cookieString.find("=",index)
+            endIndex = cookieString.find(';',index)
+            davebi = cookieString[index+1:endIndex]
+            cookies["DAVEBI"] = davebi
+        return cookies
 
     cookies = getSPACookies()
     # schedule spider
     procurementSpider = ProcurementSpider()
     scrapeMode = "INCREMENTAL"
     if len(sys.argv) > 1:
-      scrapeMode = sys.argv[1]
+        scrapeMode = sys.argv[1]
 
     procurementSpider.setScrapeMode(scrapeMode)
     appPath = sys.argv[2]
     publicPath = "shared/system"
     outputPath = appPath+publicPath
-    procurementSpider.tenderUpdatesFile = outputPath+"/liveTenders.txt"  
+    procurementSpider.tenderUpdatesFile = outputPath+"/liveTenders.txt"    
     
     procurementSpider.setSessionCookies(cookies)
 
     if procurementSpider.scrapeMode == "FIXERRORS":
-      procurementSpider.fixpath = sys.argv[3]
+        procurementSpider.fixpath = sys.argv[3]
     crawler.crawl(procurementSpider)
 
     #start engine scrapy/twisted
     print "STARTING ENGINE"
     crawler.start()
     print "MAIN SCRAPE COMPLETE"
-      
+        
     failFile = open(procurementSpider.scrapePath+"/failures.txt", 'wb')
     for failedRequest in procurementSpider.failedRequests:
         failFile.write(failedRequest[1])
@@ -1026,8 +1051,8 @@ def main():
     fullPath = os.getcwd()+"/"+publicPath
     print "FULL PATH: "+fullPath
     for f in os.listdir(os.getcwd()+"/"+publicPath):
-     print "remove: "+fullPath+"/"+f
-     os.remove(fullPath+"/"+f)
+        print "remove: "+fullPath+"/"+f
+        os.remove(fullPath+"/"+f)
     print os.getcwd()
     os.rmdir(os.getcwd()+"/"+publicPath)
     os.chdir(currentPath)

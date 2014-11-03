@@ -21,8 +21,8 @@ DEPTH_PRIORITY = 1
 SCHEDULER_DISK_QUEUE = 'scrapy.squeue.PickleFifoDiskQueue'
 SCHEDULER_MEMORY_QUEUE = 'scrapy.squeue.FifoMemoryQueue'
 
-ITEM_PIPELINES = [
-    'procurementScrape.pipelines.ProcurementscrapePipeline'
-]
+ITEM_PIPELINES = {
+    'procurementScrape.pipelines.ProcurementscrapePipeline': 100
+}
 
 

@@ -1,2 +1,2 @@
 #!/bin/bash          
-  python procurementScrape/spiders/procurement_spider.py 17618 ../app/current/public/system
+python procurementScrape/spiders/procurement_spider.py INCREMENTAL output/

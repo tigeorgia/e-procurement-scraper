@@ -15,3 +15,5 @@ procurementScrape/spiders/test_spider.py.save
 test_bash
 *.sql
 *.pyc
+/output
+/IncrementalScrapes
