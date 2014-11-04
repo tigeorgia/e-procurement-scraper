@@ -5,8 +5,6 @@
 
 from scrapy.item import Item, Field
 
-#def __init__():
-#    pass
 
 class Tender(Item):
     # define the fields for your item here like:

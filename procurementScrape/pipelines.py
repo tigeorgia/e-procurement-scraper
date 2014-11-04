@@ -13,6 +13,7 @@ from scrapy.contrib.exporter import JsonLinesItemExporter
 class ProcurementscrapePipeline(object):
     
     def __init__(self):
+        # Marek: added this to initiate all
         self.startTime = None
         self.endTime = None
         self.tendersfile = None
@@ -101,7 +102,8 @@ class ProcurementscrapePipeline(object):
         self.infoFile = open(scrapeDir+"/"+'scrapeInfo.txt', 'wb')
         self.infoFile.write("StartTime: " +nowStr+ "\n")
         
-    def process_item(self, item):
+    # scrapy .24 requires additional third argument to the call 
+    def process_item(self, item, arg_required_but_otherwise_ignored):
         itemClassName = item.__class__.__name__
         if (itemClassName == "Tender"):
             self.tenderExporter.export_item(item)

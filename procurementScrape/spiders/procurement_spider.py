@@ -22,17 +22,17 @@ import shutil
 
 class ProcurementSpider( Spider):
     
-    def __init__(self):
-        super( ProcurementSpider, self).__init__()
-        # only defining properties, to suppress all related warnings
-        self.sessionCookies = None
-        self.scrapeMode = None
-        self.scrapePath = None
-        self.firstTender = None
-        self.tenderUpdatesFile = None
-        self.fixpath = None
+#     def __init__(self, *args, **kwargs):
+#         super( ProcurementSpider, self).__init__( *args, **kwargs)
+#         # only defining properties, to suppress all related warnings
+        
+    sessionCookies = None
+    scrapeMode = None
+    scrapePath = None
+    firstTender = None
+    tenderUpdatesFile = None
+    fixpath = None
 
-    
     name = "procurement"
     allowed_domains = ["procurement.gov.ge", "tenders.procurement.gov.ge"]
     baseUrl = "https://tenders.procurement.gov.ge/public/"
@@ -56,11 +56,11 @@ class ProcurementSpider( Spider):
     def make_requests_from_url(self, url):
         return Request(url, cookies=self.sessionCookies, headers={'User-Agent':'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))'})
         
-    def setSessionCookies(self,sessionCookie):
+    def setSessionCookies(self, sessionCookie):
         self.sessionCookies = sessionCookie
         
-    def setScrapeMode(self,scrapeMode):
-        self.scrapeMode = scrapeMode
+    def setScrapeMode(self, scrapeModeParam):
+        self.scrapeMode = scrapeModeParam
         
     def setScrapePath(self, path):
         self.scrapePath = path
@@ -109,7 +109,7 @@ class ProcurementSpider( Spider):
                     item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
                 else:
                     """
-                     I think this never executed that's why it wasn't caught.
+                     I think this never executed that's why the error hasn't been caught.
                      Otherwise the dateRange should replace validityIndex
                      """
                     # index = winnerDiv.find("date",validityIndex)
@@ -615,6 +615,7 @@ class ProcurementSpider( Spider):
         if info.find(u"შPA") > -1:
             tenderSearchStr = u"შPA"
         startIndex = info.find(tenderSearchStr)
+        tenderID = ""
         if startIndex == -1:
             tenderID = "NULL"
         startIndex = info.find(u"№")
@@ -839,8 +840,8 @@ class ProcurementSpider( Spider):
             document_url = "action=app_docs&app_id=" 
     
             failPath = self.fixpath+"/failures.txt"
-            failFile = open(failPath, 'r')
-            for item_url in failFile:
+            failFileDesc = open(failPath, 'r')
+            for item_url in failFileDesc:
                 if item_url.find(tender_url) > -1:
                     index = item_url.find("app_id")
                     index = item_url.find("=",index)    
@@ -880,7 +881,7 @@ class ProcurementSpider( Spider):
                     documentation_request.meta['tenderID'] = tender_id
                     print "doc: "+tender_id
                     yield request 
-            failFile.close()
+            failFileDesc.close()
                 
         
         #if we are doing a single tender test scrape
@@ -968,7 +969,13 @@ class ProcurementSpider( Spider):
         requestFailure = [self.parseOrganisation, error.request.url]
         self.failedRequests.append(requestFailure)
         
-def main():
+        
+        
+        
+        
+if __name__ == '__main__':
+    
+    
     # shut off log
     #from scrapy.conf import settings
     settings = get_project_settings()
@@ -976,11 +983,11 @@ def main():
     settings.set('LOG_ENABLED', True)
 
     # set up crawler
-    from scrapy.crawler import Crawler
+    from scrapy.crawler import CrawlerProcess
     
-    crawler = Crawler(settings)
-    crawler.install()
-    crawler.configure()
+    crawler = CrawlerProcess(settings)
+    # crawler.install()
+    # crawler.configure()
     
     def getSPACookies():
         #first get cookie from dummy request
@@ -989,7 +996,7 @@ def main():
         headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
         # response, content = http.request(url, 'POST', headers=headers)
         response, _ = http.request(url, 'POST', headers=headers)
-        cookies = {}
+        spaCookies = {}
         if( response['set-cookie'] ):
             cookieString = response['set-cookie']
             print "COOKIE"
@@ -998,7 +1005,7 @@ def main():
             index = cookieString.find("=",index)
             endIndex = cookieString.find(';',index)
             spaLite = cookieString[index+1:endIndex]
-            cookies["SPALITE"] = spaLite
+            spaCookies["SPALITE"] = spaLite
         
         url = "https://tenders.procurement.gov.ge/dispute/"
         headers={"User-Agent":'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US'}
@@ -1011,8 +1018,8 @@ def main():
             index = cookieString.find("=",index)
             endIndex = cookieString.find(';',index)
             davebi = cookieString[index+1:endIndex]
-            cookies["DAVEBI"] = davebi
-        return cookies
+            spaCookies["DAVEBI"] = davebi
+        return spaCookies
 
     cookies = getSPACookies()
     # schedule spider
@@ -1031,8 +1038,11 @@ def main():
 
     if procurementSpider.scrapeMode == "FIXERRORS":
         procurementSpider.fixpath = sys.argv[3]
-    crawler.crawl(procurementSpider)
-
+    
+    #crawler.crawl(procurementSpider)
+    crawler.create_crawler("TenderProc")
+    crawler.crawlers["TenderProc"].crawl( procurementSpider)
+    
     #start engine scrapy/twisted
     print "STARTING ENGINE"
     crawler.start()
@@ -1060,5 +1070,4 @@ def main():
     print "to: "+outputPath
     shutil.copytree(procurementSpider.scrapePath, outputPath)
     
-if __name__ == '__main__':
-    main()
+
