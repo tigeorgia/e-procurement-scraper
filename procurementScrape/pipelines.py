@@ -103,7 +103,7 @@ class ProcurementscrapePipeline(object):
         self.infoFile.write("StartTime: " +nowStr+ "\n")
         
     # scrapy .24 requires additional third argument to the call 
-    def process_item(self, item, arg_required_but_otherwise_ignored):
+    def process_item(self, item, _):
         itemClassName = item.__class__.__name__
         if (itemClassName == "Tender"):
             self.tenderExporter.export_item(item)
