@@ -18,6 +18,9 @@ class ProcurementCredentials(object):
      remoteuser=
      remotedb=
      remotepass=     
+     remoteuser=
+     remotepass=
+     remotehost=
 
      '''
 
@@ -33,9 +36,13 @@ class ProcurementCredentials(object):
         self.local_db = None
         self.local_db_pass = None
 
-        self.remote_user = None
+        self.remote_db_user = None
         self.remote_db = None
         self.remote_db_pass = None
+
+        self.remote_user = None
+        self.remote_pass = None
+        self.remote_host = None
 
         self.remote_app_dir = '$HOME/webapps/tenderwatch'
         self.db_file = 'dump.sql'
@@ -55,16 +62,24 @@ class ProcurementCredentials(object):
         self.local_user = config.get('proc', 'localuser')
         self.local_db = config.get('proc', 'localdb')
         self.local_db_pass = config.get('proc', 'localpass')
-        self.remote_user = config.get('proc', 'remoteuser')
+
+        self.remote_db_user = config.get('proc', 'remotedbuser')
         self.remote_db = config.get('proc', 'remotedb')
-        self.remote_db_pass = config.get('proc', 'remotepass')
+        self.remote_db_pass = config.get('proc', 'remotedbpass')
+
+        self.remote_user = config.get('proc', 'remoteuser')
+        self.remote_pass = config.get('proc', 'remotepass')
+        self.remote_host = config.get('proc', 'remotehost')
 
         return {'local_user': self.local_user,
                 'local_db': self.local_db,
                 'local_pass': self.local_db_pass,
-                'remote_user': self.remote_user,
+                'remote_db_user': self.remote_db_user,
                 'remote_db': self.remote_db,
-                'remote_pass': self.remote_db_pass,
+                'remote_db_pass': self.remote_db_pass,
+                'remote_user': self.remote_user,
+                'remote_password': self.remote_pass,
+                'remote_host': self.remote_host,
 		'remote_app_dir': self.remote_app_dir,
 		'db_file': self.db_file,
 		'db_file_online': self.db_file_online,
@@ -74,5 +89,7 @@ class ProcurementCredentials(object):
 
 if __name__ == '__main__':
     creds = ProcurementCredentials()
+    info = creds.load_info()
+    print info
 
 

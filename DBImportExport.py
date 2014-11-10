@@ -13,12 +13,18 @@ class DBImportExport(object):
         '''
 	proc_creds = ProcurementCredentials()
 	self.info = proc_creds.load_info()
+	
+	host = '{0}@{1}'.format(self.info['remote_user'],self.info['remote_host'])
+	password = self.info['remote_password']
+
+	env.host_string=host
+	env.passwords={host: password}
 
 
     def dump_procurement_db(self):
 	print 'dump online procurement db.'
 
-	run('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['remote_user'], db=self.info['remote_db'], dbpass=self.info['remote_db_pass'], dbfile=self.info['db_file_online']))
+	run('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['remote_db_user'], db=self.info['remote_db'], dbpass=self.info['remote_db_pass'], dbfile=self.info['db_file_online']))
 
 
     # compress online db
@@ -38,7 +44,7 @@ class DBImportExport(object):
     # import full db to scraper db
     def import_db_scraper(self):
 	print 'import downloaded procurement db into scraper db, then delete it.'
-	local('mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['local_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file_online']))
+	local('mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['local_db_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file_online']))
 	local('rm {sqlfile}'.format(sqlfile=self.info['db_file_online']))
 
 
@@ -51,7 +57,7 @@ class DBImportExport(object):
     def dumpdb(self):
 	print 'Dump local procurement db.'
 
-	local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['local_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file']))
+	local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['local_db_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file']))
 
 
     def compressdb(self):
@@ -68,7 +74,7 @@ class DBImportExport(object):
 
     def importdb(self):
 	print 'Remotely imports the db file, then deletes it.'
-	run('ionice -c2 -n6 mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['remote_user'],db=self.info['remote_db'], dbpass=self.info['remote_db_pass'], dbfile=self.info['db_file']))
+	run('ionice -c2 -n6 mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['remote_db_user'],db=self.info['remote_db'], dbpass=self.info['remote_db_pass'], dbfile=self.info['db_file']))
 	run('rm {tarfile}'.format(tarfile=self.info['db_file']))
 
 
