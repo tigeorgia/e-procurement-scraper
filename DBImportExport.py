@@ -48,7 +48,7 @@ class DBImportExport(object):
     # import full db to scraper db
     def import_db_scraper(self):
 	print 'import downloaded procurement db into scraper db, then delete it.'
-	local('mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['local_db_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file_online']))
+	local('mysql -u {user} -p{dbpass} -D {db} < {dbfile}'.format(user=self.info['local_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file_online']))
 	local('rm {sqlfile}'.format(sqlfile=self.info['db_file_online']))
 
 
@@ -60,7 +60,7 @@ class DBImportExport(object):
     # Dump the database
     def dumpdb(self):
 	print 'Dump local procurement db.'
-	local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['local_db_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file']))
+	local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['local_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file']))
 
 
     def compressdb(self):
