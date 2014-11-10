@@ -71,14 +71,14 @@ class DBImportExport(object):
 
 
     def storePreScrapeSearchResults():
-	with cd(REMOTEAPPDIR + '/current'):
+	with cd(info['remote_app_dir'] + '/current'):
 	    with shell_env(PATH=info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=info['remote_app_dir'] + '/gems',RUBYLIB=info['remote_app_dir'] + '/lib'):
 		run('rake procurement:pre_store_search_results')
 
 
     def postProcess():
 	print 'Generates e-mail alerts and creates the CSV file'
-	with cd(remote_app_dir + '/current'):
+	with cd(info['remote_app_dir'] + '/current'):
 	    with shell_env(PATH=info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=info['remote_app_dir'] + '/gems',RUBYLIB=info['remote_app_dir'] + '/lib'):
 		run('rake procurement:generate_alerts')
 		run('rake procurement:generate_tender_bulk_data')
