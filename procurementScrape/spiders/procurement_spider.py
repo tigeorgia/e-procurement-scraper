@@ -6,8 +6,10 @@ from scrapy.selector import HtmlXPathSelector
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
 from scrapy.utils.project import get_project_settings
+
 import imp
-items = imp.load_source('items', '/mnt/drvScrapper/procurement/scraper/procurementScrape/items.py')
+items = imp.load_source('items', './procurementScrape/items.py')
+
 from items import Tender, Organisation, TenderBidder, TenderAgreement, TenderDocument, CPVCode, WhiteListObject, BlackListObject, Complaint, BidderResult
 import os
 import sys
@@ -33,6 +35,7 @@ class ProcurementSpider(BaseSpider):
     orgCount = 0
     bidderCount = 0
     agreementCount = 0
+    firstTender = 0
     docCount = 0
     failedRequests = []
    
@@ -889,17 +892,18 @@ class ProcurementSpider(BaseSpider):
         print "Starting scrape"
         startPage = 1
         url = self.mainPageBaseUrl+str(startPage)
+        
         metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
+        print "url: " + url
         yield request
       
         #now that we have queued up the scrape to find new tenders lets go through our inProgress list and scrape for updates
-        if self.scrapeMode == False: #"INCREMENTAL":
+        if self.scrapeMode == "INCREMENTAL":
           updatesFile = open(self.tenderUpdatesFile, 'r')
           for url_id in updatesFile:
             item_url = self.baseUrl+"lib/controller.php?action=app_main&app_id="+url_id.replace("\n","")
             request = Request(item_url, errback=self.tenderFailed,callback=self.parseTender, cookies=self.sessionCookies, meta={"tenderUrl": url_id},headers={"User-Agent":self.userAgent})
-            print "update tender: "+item_url
             yield request
    
         #parse white/black/disputes lists
@@ -995,6 +999,8 @@ def main():
     scrapeMode = "INCREMENTAL"
     if len(sys.argv) > 1:
       scrapeMode = sys.argv[1]
+
+    print "Scrape mode is " + scrapeMode
 
     procurementSpider.setScrapeMode(scrapeMode)
     appPath = sys.argv[2]
