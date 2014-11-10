@@ -2,14 +2,12 @@
 /IncrementalScrapes/*
 /TestScrapes/*
 db_import.py
-fabfile.py
 incremental_scrape
 full_scrape
 DDOS.txt
 allout.txt
 cronLog.txt
 cronTest
-fabfile.pyc
 full_scrape.save
 procurementScrape/spiders/test_spider.py.save
 test_bash
