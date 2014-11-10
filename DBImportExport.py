@@ -20,6 +20,10 @@ class DBImportExport(object):
 	env.host_string=host
 	env.passwords={host: password}
 
+	env.user=self.info['remote_user']
+	env.password=password
+
+
 
     def dump_procurement_db(self):
 	print 'dump online procurement db.'
