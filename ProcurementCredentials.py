@@ -73,7 +73,7 @@ class ProcurementCredentials(object):
 
         return {'local_user': self.local_user,
                 'local_db': self.local_db,
-                'local_pass': self.local_db_pass,
+                'local_db_pass': self.local_db_pass,
                 'remote_db_user': self.remote_db_user,
                 'remote_db': self.remote_db,
                 'remote_db_pass': self.remote_db_pass,
