@@ -40,7 +40,7 @@ class DBImportExport(object):
     # download to scraper server
     def download_online_db(self):
 	print 'download online procurement db, uncompresses it, then deletes the local compressed file.'
-	get(self.db_zip_online, self.db_zip_online)
+	get(self.info['db_zip_online'], self.info['db_zip_online'])
 	local('tar xzf {tarfile}'.format(tarfile=self.info['db_zip_online']))
 	local('rm {tarfile}'.format(tarfile=self.info['db_zip_online']))
 
@@ -60,7 +60,6 @@ class DBImportExport(object):
     # Dump the database
     def dumpdb(self):
 	print 'Dump local procurement db.'
-
 	local('mysqldump -u {user} -p{dbpass} {db} --add-drop-table > {dbfile}'.format(user=self.info['local_db_user'],db=self.info['local_db'], dbpass=self.info['local_db_pass'], dbfile=self.info['db_file']))
 
 
@@ -71,7 +70,7 @@ class DBImportExport(object):
 
     def uploaddb(self):
 	print 'Uploads the compressed db file, uncompresses it remotely, and deletes the remote compressed file.'
-	put(db_zip, db_zip)
+	put(self.info['db_zip'], self.info['db_zip'])
 	run('tar xzf {tarfile}'.format(tarfile=self.info['db_zip']))
 	run('rm {tarfile}'.format(tarfile=self.info['db_zip']))
 
