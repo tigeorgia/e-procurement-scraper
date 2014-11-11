@@ -1,1 +1,2 @@
+httplib2==0.8
 Scrapy==0.16.1
