@@ -119,99 +119,100 @@ class ProcurementSpider( Spider):
                     item["ExpiryDate"] = winnerDiv[index+1:endIndex].strip()
 
             
-            #find the document download section
-            index = winnerDiv.find('align="right',index)
-            index = winnerDiv.find("href",index)
-            index = winnerDiv.find('"',index)+1
-            endIndex = winnerDiv.find('"',index)
-            item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
+                #find the document download section
+                index = winnerDiv.find('align="right',index)
+                index = winnerDiv.find("href",index)
+                index = winnerDiv.find('"',index)+1
+                endIndex = winnerDiv.find('"',index)
+                item["documentUrl"] = self.baseUrl+winnerDiv[index:endIndex]
 
-            self.agreementCount = self.agreementCount + 1
-            yield item
+                self.agreementCount = self.agreementCount + 1
+                yield item
             
-            #check for contract amendment
-            if resultsDividers.__len__() > 2:
-                count = 0
-                for divider in resultsDividers:
-                    if count < 2:
-                        count = count + 1
-                        continue
-                    xAmendmentsTable = resultsDividersXPath[count]
-                    xAmendments = xAmendmentsTable.select('.//tr')                 
-                    item = TenderAgreement()
-                    item["tenderID"] = tenderID
-                    #agreement change
-                    if divider.find(u"ხელშეკრულების ცვლილება") > -1 or divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1: 
-                        #extract all rows
-                        for row in xAmendments:
-                            amendmentHtml = row.extract()                
-                            amendmentNumber = amendmentNumber + 1
-                            item["AmendmentNumber"] = str(amendmentNumber)
-                            #should be the same org as the original contract
-                            item["OrgUrl"] = orgUrl
-                            self.agreementCount = self.agreementCount + 1
-                            index = amendmentHtml.find(u"ნომერი/თანხა")
-                            endIndex = amendmentHtml.find("<br",index)
-                            index = amendmentHtml.rfind("/",index,endIndex)
-                            item["Amount"] = amendmentHtml[index+1:endIndex].strip()
-                            
-                            index = amendmentHtml.find(u"ძალაშია",index)
-                            index = amendmentHtml.find(":",index)
-                            endIndex = amendmentHtml.find("-",index)
-                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-                            
-                            index = endIndex
-                            endIndex = amendmentHtml.find("<",index)
-                            item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
-                                            
-                            #error correction
-                            if divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
-                                item["documentUrl"] = "Treaty Correction: No Document"
-                            else:
-                                index = amendmentHtml.find('align="right',index)
-                                index = amendmentHtml.find("href",index)
-                                index = amendmentHtml.find('"',index)+1
-                                endIndex = amendmentHtml.find('"',index)
-                                item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
-                            yield item
-                        
-                    #disqualify (might be another company so the contract is still valid)
-                    elif divider.find(u"დისკვალიფიკაცია") > -1 or divider.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:        
-                        #extract all rows
-                        for row in xAmendments:
-                            amendmentHtml = row.extract()                    
-                            index = amendmentHtml.find("width")
-                            index = amendmentHtml.find(">",index)
-                            endIndex = amendmentHtml.find("</",index) 
-                            item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
-    
-                            index = amendmentHtml.find("strong",index)
-                            index = amendmentHtml.find(">",index)
-                            endIndex = amendmentHtml.find("</",index)
-                            item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
-                        
-                            item["Amount"] = "NULL"
-                            item["StartDate"] = "NULL"
-                            item["ExpiryDate"] = "NULL"
-                        
-                            if divider.find(u"დისკვალიფიკაცია") > -1:
-                                item["documentUrl"] = "disqualified"
-                            else:
-                                item["documentUrl"] = "bidder refused agreement"
-                            
-                            yield item
-                    #unknown stuff
-                    else:
+                #check for contract amendment
+                if resultsDividers.__len__() > 2:
+                    count = 0
+                    for divider in resultsDividers:
+                        if count < 2:
+                            count = count + 1
+                            continue
+                        xAmendmentsTable = resultsDividersXPath[count]
+                        xAmendments = xAmendmentsTable.select('.//tr')                 
                         item = TenderAgreement()
                         item["tenderID"] = tenderID
-                        item["AmendmentNumber"] = str(0)
-                        item["Amount"] = "-1"
-                        item["StartDate"] = "NULL"
-                        item["documentUrl"] = "unknown"
-                        item["OrgUrl"] = "NULL"
-                        item["ExpiryDate"] = "NULL"
-                    yield item
-                    count = count + 1
+                        #agreement change
+                        if divider.find(u"ხელშეკრულების ცვლილება") > -1 or divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1: 
+                            #extract all rows
+                            for row in xAmendments:
+                                amendmentHtml = row.extract()                
+                                amendmentNumber = amendmentNumber + 1
+                                item["AmendmentNumber"] = str(amendmentNumber)
+                                #should be the same org as the original contract
+                                item["OrgUrl"] = orgUrl
+                                self.agreementCount = self.agreementCount + 1
+                                index = amendmentHtml.find(u"ნომერი/თანხა")
+                                endIndex = amendmentHtml.find("<br",index)
+                                index = amendmentHtml.rfind("/",index,endIndex)
+                                item["Amount"] = amendmentHtml[index+1:endIndex].strip()
+                                
+                                index = amendmentHtml.find(u"ძალაშია",index)
+                                index = amendmentHtml.find(":",index)
+                                endIndex = amendmentHtml.find("-",index)
+                                item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+                                
+                                index = endIndex
+                                endIndex = amendmentHtml.find("<",index)
+                                item["ExpiryDate"] = amendmentHtml[index+1:endIndex].strip()
+                                                
+                                #error correction
+                                if divider.find(u"ხელშეკრულებაში შეცდომის გასწორება") > -1:
+                                    item["documentUrl"] = "Treaty Correction: No Document"
+                                else:
+                                    index = amendmentHtml.find('align="right',index)
+                                    index = amendmentHtml.find("href",index)
+                                    index = amendmentHtml.find('"',index)+1
+                                    endIndex = amendmentHtml.find('"',index)
+                                    item["documentUrl"] = self.baseUrl+amendmentHtml[index:endIndex].strip()
+                                yield item
+                        
+                        #disqualify (might be another company so the contract is still valid)
+                        elif divider.find(u"დისკვალიფიკაცია") > -1 or divider.find(u"პრეტენდენტმა უარი თქვა წინადადებაზე") > -1:        
+                            #extract all rows
+                            for row in xAmendments:
+                                amendmentHtml = row.extract()                    
+                                index = amendmentHtml.find("width")
+                                index = amendmentHtml.find(">",index)
+                                endIndex = amendmentHtml.find("</",index) 
+                                item["StartDate"] = amendmentHtml[index+1:endIndex].strip()
+        
+                                index = amendmentHtml.find("strong",index)
+                                index = amendmentHtml.find(">",index)
+                                endIndex = amendmentHtml.find("</",index)
+                                item["OrgUrl"] = amendmentHtml[index+1:endIndex].strip()
+                            
+                                item["Amount"] = "NULL"
+                                item["StartDate"] = "NULL"
+                                item["ExpiryDate"] = "NULL"
+                            
+                                if divider.find(u"დისკვალიფიკაცია") > -1:
+                                    item["documentUrl"] = "disqualified"
+                                else:
+                                    item["documentUrl"] = "bidder refused agreement"
+                                
+                                yield item
+
+                        #unknown stuff
+                        else:
+                            item = TenderAgreement()
+                            item["tenderID"] = tenderID
+                            item["AmendmentNumber"] = str(0)
+                            item["Amount"] = "-1"
+                            item["StartDate"] = "NULL"
+                            item["documentUrl"] = "unknown"
+                            item["OrgUrl"] = "NULL"
+                            item["ExpiryDate"] = "NULL"
+                        yield item
+                        count = count + 1
                 
     def parseBidsPage(self,response):
         #print "parsing bids"
