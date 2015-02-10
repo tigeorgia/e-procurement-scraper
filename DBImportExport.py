@@ -94,6 +94,8 @@ class DBImportExport(object):
 		run('rake procurement:generate_alerts')
 		run('rake procurement:generate_tender_bulk_data')
 		run('zip ./public/AllTenders AllTenders.csv')
+		run('rake procurement:generate_procurement_csv_file')
+                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements.csv")
 
 
     def cleanup(self):
