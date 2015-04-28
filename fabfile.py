@@ -25,3 +25,7 @@ def post_scrape_process():
 def pre_scrape_process():
     jobs = DBImportExport()
     jobs.storePreScrapeSearchResults()
+
+def generate_files():
+    jobs = DBImportExport()
+    jobs.generateFiles()

@@ -97,6 +97,15 @@ class DBImportExport(object):
 		run('rake procurement:generate_procurement_csv')
                 run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements.csv")
 
+    def generateFiles(self):
+        print 'Creates the CSV file'
+        with cd(self.info['remote_app_dir'] + '/current'):
+            with shell_env(PATH=self.info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=self.info['remote_app_dir'] + '/gems',RUBYLIB=self.info['remote_app_dir'] + '/lib'):
+                run('rake procurement:generate_tender_bulk_data')
+                run('zip ./public/AllTenders AllTenders.csv')
+                run('rake procurement:generate_procurement_csv')
+                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements.csv")
+
 
     def cleanup(self):
 	print 'Cleans up the local dump file and tar file'
