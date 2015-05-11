@@ -95,7 +95,7 @@ class DBImportExport(object):
 		run('rake procurement:generate_tender_bulk_data')
 		run('zip ./public/AllTenders AllTenders.csv')
 		run('rake procurement:generate_procurement_csv')
-                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements.csv")
+                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements_*.csv")
 
     def generateFiles(self):
         print 'Creates the CSV file'
@@ -104,7 +104,7 @@ class DBImportExport(object):
                 run('rake procurement:generate_tender_bulk_data')
                 run('zip ./public/AllTenders AllTenders.csv')
                 run('rake procurement:generate_procurement_csv')
-                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements.csv")
+                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements_*.csv")
 
 
     def cleanup(self):
