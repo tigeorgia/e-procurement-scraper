@@ -46,9 +46,9 @@ class ProcurementCredentials(object):
 
         self.remote_app_dir = '$HOME/www/tendermonitor'
         self.db_file = 'dump.sql'
-	self.db_file_online = 'dump_online.sql'
+        self.db_file_online = 'dump_online.sql'
         self.db_zip = 'dump.sql.tar.gz'
-	self.db_zip_online = 'dump_online.sql.tar.gz'
+        self.db_zip_online = 'dump_online.sql.tar.gz'
 
     # the credentials will be loaded from home folder from .cmrcreds file ($HOME/.cmrcreds)
     def load_info(self):
