@@ -44,7 +44,7 @@ class ProcurementCredentials(object):
         self.remote_pass = None
         self.remote_host = None
 
-        self.remote_app_dir = '$HOME/webapps/tenderwatch'
+        self.remote_app_dir = '$HOME/www/tendermonitor'
         self.db_file = 'dump.sql'
 	self.db_file_online = 'dump_online.sql'
         self.db_zip = 'dump.sql.tar.gz'
