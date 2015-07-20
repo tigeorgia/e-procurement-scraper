@@ -88,15 +88,15 @@ class DBImportExport(object):
 
 
     def postProcess(self):
-        #         pass
-    	print 'Generates e-mail alerts and creates the CSV file'
-    	with cd(self.info['remote_app_dir'] + '/current'):
-    	    with shell_env(PATH=self.info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=self.info['remote_app_dir'] + '/gems',RUBYLIB=self.info['remote_app_dir'] + '/lib'):
-    		run('rake procurement:generate_alerts')
-    		run('rake procurement:generate_tender_bulk_data')
-    		run('zip ./public/AllTenders AllTenders.csv')
-    		run('rake procurement:generate_procurement_csv')
-                run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements_*.csv")
+        pass
+#     	print 'Generates e-mail alerts and creates the CSV file'
+#     	with cd(self.info['remote_app_dir'] + '/current'):
+#     	    with shell_env(PATH=self.info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=self.info['remote_app_dir'] + '/gems',RUBYLIB=self.info['remote_app_dir'] + '/lib'):
+#     		run('rake procurement:generate_alerts')
+#     		run('rake procurement:generate_tender_bulk_data')
+#     		run('zip ./public/AllTenders AllTenders.csv')
+#     		run('rake procurement:generate_procurement_csv')
+#                 run("zip ./public/AllSimplifiedProcurements AllSimplifiedProcurements_*.csv")
 
     def generateFiles(self):
         print 'Creates the CSV file'
