@@ -83,7 +83,7 @@ class DBImportExport(object):
 
     def storePreScrapeSearchResults(self):
     	with cd(self.info['remote_app_dir'] + '/current'):
-    	    with shell_env(PATH=self.info['remote_app_dir'] + '/bin:$PATH',GEM_HOME=self.info['remote_app_dir'] + '/gems',RUBYLIB=self.info['remote_app_dir'] + '/lib'):
+    	    with shell_env(PATH=self.info['remote_app_dir'] + '/bin:$PATH',RUBYLIB=self.info['remote_app_dir'] + '/lib'):
     		run('rake procurement:pre_store_search_results')
 
 
