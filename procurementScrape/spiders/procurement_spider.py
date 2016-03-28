@@ -349,15 +349,18 @@ class ProcurementSpider(BaseSpider):
         item["webpage"] = keyPairs[8] [index+1:endIndex].strip()
         
         yield item
-    
 
+    def xstr(self, s):
+        if s is None:
+            return ''
+        return s
 
     def findKeyValue(self, keyString, pairs, conditions, direction = 1 ):
         keyCondition = (keyString, )
         result = self.findData( pairs, keyCondition, -1 )
         if result[0] is not None:
             result = self.findData( pairs, conditions, result[1]+direction )
-        return result[0]
+        return self.xstr(result[0])
 
     def findData(self, keypairs, conditionList, startPair ):
         result = [None, -1]
