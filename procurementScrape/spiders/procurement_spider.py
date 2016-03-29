@@ -476,18 +476,24 @@ class ProcurementSpider(BaseSpider):
 
         #now lets look at the tender documentation
         url = self.baseUrl+"lib/controller.php?action=app_docs&app_id="+item['tenderID']
+        print "parsing Tender Documentation"
+        print url
         documentation_request = Request(url, errback=self.documentationFailed,callback=self.parseDocumentationPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         documentation_request.meta['tenderID'] = item['tenderID']
         toYield.append(documentation_request)   
         
         #now lets look at the bids made on this tender
         url = self.baseUrl+"lib/controller.php?action=app_bids&app_id="+item['tenderID']
+        print "parsing Tender Bids"
+        print url
         bids_request = Request(url, errback=self.bidsFailed,callback=self.parseBidsPage, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         bids_request.meta['tenderID'] = item['tenderID']
         toYield.append(bids_request)   
         
         #finally lets look at the results of this tender
         url = self.baseUrl+"lib/controller.php?action=agency_docs&app_id="+item['tenderID']
+        print "parsing Tender result"
+        print url
         results_request = Request(url, errback=self.resultFailed,callback=self.parseResultsPage,cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         results_request.meta['tenderID'] = item['tenderID']
         toYield.append(results_request)   
@@ -498,7 +504,7 @@ class ProcurementSpider(BaseSpider):
         hxs = HtmlXPathSelector(response)
         
         tenderOnClickItems = hxs.select('//table[@id="list_apps_by_subject"]//tr//@onclick').extract()
-        #print "processing page: " + response.url
+        print "processing page: " + response.url
         first = True
         page = response.meta['page']
         incrementalFinished = False
@@ -525,6 +531,8 @@ class ProcurementSpider(BaseSpider):
             page = page+1
             url = self.mainPageBaseUrl+str(page)
             metadata ={"page": page, "final_page": response.meta['final_page'], "prevScrapeStartTender": response.meta['prevScrapeStartTender']}
+            print "parse tender urls"
+            print url
             request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta=metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
             yield request
 
@@ -895,7 +903,8 @@ class ProcurementSpider(BaseSpider):
         print "Starting scrape"
         startPage = 1
         url = self.mainPageBaseUrl+str(startPage)
-        
+        print "parse function"
+        print url
         metadata = {"page": startPage, "final_page": final_page, "prevScrapeStartTender": lastTenderURL}
         request = Request(url, errback=self.urlPageFailed,callback=self.parseTenderUrls, meta = metadata, cookies=self.sessionCookies, headers={"User-Agent":self.userAgent})
         print "url: " + url
