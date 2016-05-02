@@ -401,20 +401,20 @@ class ProcurementSpider(BaseSpider):
         item['procuringEntityName'] = result[0].strip()
         
         conditions = ">","<"
-        item['tenderType'] = self.findKeyValue( u"ტენდერის ტიპი", keyPairs, conditions ).strip()
+        item['tenderType'] = self.findKeyValue( u"შესყიდვის ტიპი", keyPairs, conditions ).strip()
         
         conditions = "strong",">","<"
-        item['tenderRegistrationNumber']  = self.findKeyValue( u"სატენდერო განცხადების ნომერი", keyPairs, conditions ).strip()
+        item['tenderRegistrationNumber']  = self.findKeyValue( u"განცხადების ნომერი", keyPairs, conditions ).strip()
 
         conditions =  "img",">","<"
-	tenderStatusValue = self.findKeyValue( u"ტენდერის მიმდინარეობის სტატუსი", keyPairs, conditions )
-        if tenderStatusValue is None:
-            item['tenderStatus']  = self.findKeyValue( u"ტენდერის სტატუსი", keyPairs, conditions ).strip()
+        tenderStatusValue = self.findKeyValue( u"შესყიდვის მიმდინარეობის სტატუსი", keyPairs, conditions )
+        if tenderStatusValue is None or len(tenderStatusValue) == 0:
+            item['tenderStatus']  = self.findKeyValue( u"შესყიდვის სტატუსი", keyPairs, conditions ).strip()
         else:
             item['tenderStatus']  = tenderStatusValue.strip()
         
         conditions = ">","<"
-        item['tenderAnnouncementDate'] =   self.findKeyValue( u"ტენდერის გამოცხადების თარიღი", keyPairs, conditions ).strip()     
+        item['tenderAnnouncementDate'] =   self.findKeyValue( u"შესყიდვის გამოცხადების თარიღი", keyPairs, conditions ).strip()
         item['bidsStartDate'] =  self.findKeyValue( u"წინადადებების მიღება იწყება", keyPairs, conditions ).strip()     
         item['bidsEndDate'] =  self.findKeyValue( u"წინადადებების მიღება მთავრდება", keyPairs, conditions ).strip()
         
